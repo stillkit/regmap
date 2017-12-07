@@ -7,6 +7,7 @@
 #include <cmath>
 #include <cstdio>
 #include <limits>
+#include <cfloat>
 // #include <stdbool.h>
 
 using namespace std;   
@@ -26,6 +27,8 @@ typedef unsigned char uint8_t;
 #define CONSTANTS_AIR_GAS_CONST				287.1f 			/* J/(kg * K)		*/
 #define CONSTANTS_ABSOLUTE_NULL_CELSIUS			-273.15f		/* °C			*/
 #define CONSTANTS_RADIUS_OF_EARTH			6371000			/* meters (m)		*/
+
+#define DEBUG
 
 static const float epsilon = std::numeric_limits<double>::epsilon();
 
@@ -84,7 +87,7 @@ int             _missionCommandCount;
 double          _surveyDistance;
 int             _gridEntryLocation = EntryLocationTopLeft;
 
-void GenRegWaypoint(std::vector<struct wayPointGPS> gridPlygon, double gridSpacing, double gridAngle, 
+vector<vector<StwayGPS> >   GenRegWaypoint(std::vector<struct wayPointGPS> gridPlygon, double gridSpacing, double gridAngle, 
                     bool gridTriggerCamera, double gridTriggerCameraDist, double _turnaroundDist, uint8_t gridMode, uint8_t gridRefly);
 void convertGeoToNed(StwayGPS coord, StwayGPS origin, double* x, double* y);
 void convertNedToGeo(double x, double y, StwayGPS origin, StwayGPS *coord);
@@ -104,5 +107,6 @@ void intersectLinesWithPolygon(const vector<LineXY>& lineList, const vector<Stwa
 StwayXY pointAt(LineXY line, double proportion);
 LineXY getTranslate(LineXY line, StwayXY center);
 double lineLenth(LineXY line);
+void adjustLineDirection(const vector<LineXY>& lineList, vector<LineXY>& resultLines);
 
 #endif 

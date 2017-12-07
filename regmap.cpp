@@ -1,6 +1,6 @@
 #include "regmap.h"
 
-void GenRegWaypoint(std::vector<struct wayPointGPS> gridPlygon, double gridSpacing, double gridAngle, 
+vector<vector<StwayGPS> >  GenRegWaypoint(std::vector<struct wayPointGPS> gridPlygon, double gridSpacing, double gridAngle, 
                                 bool gridTriggerCamera, double gridTriggerCameraDist, double _turnaroundDist, uint8_t gridMode, uint8_t gridRefly) 
 {  
     _gridPlygon = gridPlygon;
@@ -10,6 +10,7 @@ void GenRegWaypoint(std::vector<struct wayPointGPS> gridPlygon, double gridSpaci
     _gridTriggerCameraDist = gridTriggerCameraDist;
     _gridMode = gridMode;
     _gridRefly = gridRefly;
+    _hoverAndCaptureEnabled = true;
 
     generateGrid();
 
@@ -17,7 +18,7 @@ void GenRegWaypoint(std::vector<struct wayPointGPS> gridPlygon, double gridSpaci
     int i;
     if( (fp = fopen("dataman.txt","w+")) == NULL){
         if((fp = fopen("dataman.txt","w")) == NULL ){
-            return ; 
+            return _transectSegments; 
         } 
     }
     // for(i = 0; i < _gridPlygon.size(); i ++){
@@ -25,9 +26,11 @@ void GenRegWaypoint(std::vector<struct wayPointGPS> gridPlygon, double gridSpaci
     // }
     for(i = 0; i < _transectSegments.size(); i ++){
         for(int j = 0; j < _transectSegments[i].size(); j ++)
-            fprintf(fp,"%f %f\n",_transectSegments[i][j].lat,_transectSegments[i][j].lon); 
+            fprintf(fp,"%0.7f\n",_transectSegments[i][j].lon); 
     }
     fclose(fp);
+
+    return _transectSegments;
 }  
 
 void generateGrid(void)
@@ -50,7 +53,9 @@ void generateGrid(void)
 
     // Convert polygon to NED
     StwayGPS tangentOrigin = _gridPlygon[0];
+    #ifdef DEBUG
     printf("Convert polygon to NED - tangentOrigin %lf %lf\n",tangentOrigin.lat,tangentOrigin.lon);
+    #endif
     for (int i=0; i<_gridPlygon.size(); i++) {
         StwayXY tmp;
         StwayGPS vertex = _gridPlygon[i];
@@ -61,7 +66,9 @@ void generateGrid(void)
             convertGeoToNed(vertex, tangentOrigin, &tmp.y, &tmp.x);
         }
         polygonPoints.push_back(tmp);
+        #ifdef DEBUG
         printf("vertex:x:y %f %f\n", polygonPoints.back().x,polygonPoints.back().y);
+        #endif
     }
 
     // polygonPoints = _convexPolygon(polygonPoints);
@@ -120,7 +127,7 @@ void generateGrid(void)
     // Determine command count for lastSequenceNumber
 
     _missionCommandCount= 0;
-    _hoverAndCaptureEnabled = false;
+    // _hoverAndCaptureEnabled = true;
     for (int i=0; i<_transectSegments.size(); i++) {
         const vector<StwayGPS>& transectSegment = _transectSegments[i];
 
@@ -158,7 +165,9 @@ int gridGenerator(const vector<StwayXY>& polygonPoints,  vector<vector<StwayXY> 
     gridAngle = clampGridAngle90(gridAngle);
     gridAngle += refly ? 90 : 0;
     // qCDebug(SurveyMissionItemLog) << "Clamped grid angle" << gridAngle;
+#ifdef DEBUG
     printf("Clamped grid angle %f\n",gridAngle);
+#endif
 
     // qCDebug(SurveyMissionItemLog) << "SurveyMissionItem::_gridGenerator gridSpacing:gridAngle:refly" << gridSpacing << gridAngle << refly;
 
@@ -167,7 +176,9 @@ int gridGenerator(const vector<StwayXY>& polygonPoints,  vector<vector<StwayXY> 
     // Convert polygon to bounding rect
 
     // qCDebug(SurveyMissionItemLog) << "Polygon";
+#ifdef DEBUG
     printf("Polygon\n");
+#endif
     vector<StwayXY> polygon;
     for (int i=0; i<polygonPoints.size(); i++) {
         // qCDebug(SurveyMissionItemLog) << polygonPoints[i];
@@ -176,9 +187,15 @@ int gridGenerator(const vector<StwayXY>& polygonPoints,  vector<vector<StwayXY> 
     polygon.push_back(polygonPoints[0]);
     // QRectF smallBoundRect = polygon.boundingRect();
     RectXY smallBoundRect = boundingRect(polygon);
+#ifdef DEBUG
+    printf("smallBoundRect %d %f %f %f %f\n",(int)polygon.size(),smallBoundRect.x,smallBoundRect.y,smallBoundRect.width,smallBoundRect.lenth);
+#endif
     StwayXY boundingCenter = center(smallBoundRect);
+#ifdef DEBUG    
+    printf("Bounding rect center %f %f\n",boundingCenter.x,boundingCenter.y);
     // qCDebug(SurveyMissionItemLog) << "Bounding rect" << smallBoundRect.topLeft().x() << smallBoundRect.topLeft().y() << smallBoundRect.bottomRight().x() << smallBoundRect.bottomRight().y();
     printf("Bounding rect\n");
+#endif
     // Rotate the bounding rect around it's center to generate the larger bounding rect
     vector<StwayXY> boundPolygon;
     StwayXY rotatePoint_temp;
@@ -196,13 +213,21 @@ int gridGenerator(const vector<StwayXY>& polygonPoints,  vector<vector<StwayXY> 
     boundPolygon.push_back(rotatePoint(rotatePoint_temp, boundingCenter, gridAngle));
     boundPolygon.push_back(boundPolygon[0]);
     RectXY largeBoundRect = boundingRect(boundPolygon);
+#ifdef DEBUG
+    printf("smallBoundRect %d %f %f %f %f\n",(int)boundPolygon.size(),largeBoundRect.x,largeBoundRect.y,largeBoundRect.width,largeBoundRect.lenth);
+#endif
 //     qCDebug(SurveyMissionItemLog) << "Rotated bounding rect" << largeBoundRect.topLeft().x() << largeBoundRect.topLeft().y() << largeBoundRect.bottomRight().x() << largeBoundRect.bottomRight().y();
+#ifdef DEBUG
     printf("Rotated bounding rect\n");
+#endif
     // Create set of rotated parallel lines within the expanded bounding rect. Make the lines larger than the
     // bounding box to guarantee intersection.
 
     vector<LineXY> lineList;
     bool northSouthTransects = gridAngleIsNorthSouthTransects();
+#ifdef DEBUG
+    printf("%d\n",northSouthTransects);
+#endif
     int entryLocation = _gridEntryLocation;
 
     if (northSouthTransects) {
@@ -210,16 +235,18 @@ int gridGenerator(const vector<StwayXY>& polygonPoints,  vector<vector<StwayXY> 
         if (entryLocation == EntryLocationTopLeft || entryLocation == EntryLocationBottomLeft) {
             // Generate transects from left to right
             // qCDebug(SurveyMissionItemLog) << "Generate left to right";
-            float x = largeBoundRect.x - (gridSpacing / 2);
+            float x = largeBoundRect.x;// - (gridSpacing / 2);
             while (x < largeBoundRect.x + largeBoundRect.width) {
-                float yTop =    largeBoundRect.y - 10000.0;
-                float yBottom = largeBoundRect.y - largeBoundRect.lenth+ 10000.0;
+                float yTop =    largeBoundRect.y;// - 10000.0;
+                float yBottom = largeBoundRect.y + largeBoundRect.lenth;// + 10000.0;
 
                 LineXY lineList_temp = getLine(x, yTop, x, yBottom, boundingCenter, gridAngle);
                 lineList.push_back(lineList_temp);
                 // qCDebug(SurveyMissionItemLog) << "line(" << lineList.last().x1() << ", " << lineList.last().y1() << ")-(" << lineList.last().x2() <<", " << lineList.last().y2() << ")";
-
-                x += gridSpacing;
+#ifdef DEBUG
+    printf("SurveyMissionItemLog %f %f %f %f\n",lineList.back().start.x,lineList.back().start.y,lineList.back().stop.x,lineList.back().stop.y);
+#endif
+                x += gridSpacing;  
             }
         } else {
             // Generate transects from right to left
@@ -273,7 +300,9 @@ int gridGenerator(const vector<StwayXY>& polygonPoints,  vector<vector<StwayXY> 
             }
         }
     }
-    printf("intersectLinesWithPolygon\n");
+#ifdef DEBUG
+    printf("intersectLinesWithPolygon %d\n",(int)lineList.size());
+#endif
     // Now intersect the lines with the polygon
     vector<LineXY> intersectLines;
 #if 1
@@ -303,23 +332,30 @@ int gridGenerator(const vector<StwayXY>& polygonPoints,  vector<vector<StwayXY> 
 //     // Make sure all lines are going to same direction. Polygon intersection leads to line which
 //     // can be in varied directions depending on the order of the intesecting sides.
     vector<LineXY> resultLines;
-//     _adjustLineDirection(intersectLines, resultLines);
-printf(" Calc camera shots\n");
+    adjustLineDirection(intersectLines, resultLines);
+#ifdef DEBUG
+printf(" Calc camera shots %d\n",(int)intersectLines.size());
+#endif
     // Calc camera shots here if there are no images in turnaround
     if (_gridTriggerCamera) {
         for (int i=0; i<resultLines.size(); i++) {
             cameraShots += (int)floor(lineLenth(resultLines[i]) / _gridTriggerCameraDist);
             // Take into account immediate camera trigger at waypoint entry
+            printf("cameraShots %d\n",(int)floor(lineLenth(resultLines[i]) / _gridTriggerCameraDist));
             cameraShots++;
         }
     }
+#ifdef DEBUG
 printf(" Turn into a path \n");
+#endif
     // Turn into a path
     for (int i=0; i<resultLines.size(); i++) {
         LineXY           transectLine;
         vector<StwayXY>  transectPoints;
         const LineXY&    line = resultLines[i];
+#ifdef DEBUG
 printf(" Polygon entry point 1\n");
+#endif
         float turnaroundPosition = _turnaroundDist / lineLenth(line);
 
         if (i & 1) {
@@ -333,7 +369,9 @@ printf(" Polygon entry point 1\n");
         }
 
         // Build the points along the transect
-printf(" Polygon entry point 1\n");
+// #ifdef DEBUG
+// printf(" Polygon entry point 1\n");
+// #endif
         if (_turnaroundDist > 0 ) {
             // transectPoints.append(transectLine.pointAt(-turnaroundPosition));
             transectPoints.push_back(pointAt(transectLine, -turnaroundPosition));
@@ -341,8 +379,11 @@ printf(" Polygon entry point 1\n");
 
         // Polygon entry point
         transectPoints.push_back(transectLine.start);
-printf(" Polygon entry point 2\n");
+// #ifdef DEBUG
+// printf(" Polygon entry point 2\n");
+// #endif
         // For hover and capture we need points for each camera location
+        // _hoverAndCaptureEnabled = true;
         if (_gridTriggerCamera && _hoverAndCaptureEnabled) {
             if (_gridTriggerCameraDist < lineLenth(transectLine)) {
                 int innerPoints = floor(lineLenth(transectLine) / _gridTriggerCameraDist);
@@ -353,7 +394,9 @@ printf(" Polygon entry point 2\n");
                 }
             }
         }
-printf(" Polygon exit point \n");
+// #ifdef DEBUG
+// printf(" Polygon exit point \n");
+// #endif
         // Polygon exit point
         transectPoints.push_back(transectLine.stop);
 
@@ -365,6 +408,29 @@ printf(" Polygon exit point \n");
     }
 
     return cameraShots;
+}
+
+void adjustLineDirection(const vector<LineXY>& lineList, vector<LineXY>& resultLines)
+{
+    // qreal firstAngle = 0;
+    // for (int i=0; i<lineList.count(); i++) {
+    //     const QLineF& line = lineList[i];
+    //     QLineF adjustedLine;
+
+    //     if (i == 0) {
+    //         firstAngle = line.angle();
+    //     }
+
+    //     if (qAbs(line.angle() - firstAngle) > 1.0) {
+    //         adjustedLine.setP1(line.p2());
+    //         adjustedLine.setP2(line.p1());
+    //     } else {
+    //         adjustedLine = line;
+    //     }
+
+    //     resultLines += adjustedLine;
+    // }
+    resultLines = lineList;
 }
 
 double lineLenth(LineXY line){
@@ -392,10 +458,14 @@ StwayXY pointAt(LineXY line, double proportion){
 void intersectLinesWithPolygon(const vector<LineXY>& lineList, const vector<StwayXY>& polygon, vector<LineXY>& resultLines)
 {
     resultLines.clear();
+    #ifdef DEBUG
+    printf(" intersectLinesWithPolygon  %d\n",(int)lineList.size());
+    #endif
     for (int i=0; i<lineList.size(); i++) {
         int foundCount = 0;
         LineXY intersectLine;
         const LineXY& line = lineList[i];
+
 
         for (int j=0; j<polygon.size()-1; j++) {
             StwayXY intersectPoint;
@@ -409,7 +479,20 @@ void intersectLinesWithPolygon(const vector<LineXY>& lineList, const vector<Stwa
             polygonLine.stop = polygon[j+1];
 
             intersectPoint = getCross(line, polygonLine);
-            if(!(intersectPoint.x == -0.000000 && intersectPoint.y == 0.000000)){
+            #ifdef DEBUG
+                printf(" polygonLine %f %f %f %f \n",polygonLine.start.x,polygonLine.start.y,polygonLine.stop.x,polygonLine.stop.y);
+                printf(" line %f %f %f %f \n",line.start.x,line.start.y,line.stop.x,line.stop.y);
+                if(intersectPoint.x != DBL_MAX)
+                    printf(" intersectPoint %f %f \n ",intersectPoint.x,intersectPoint.y);
+                // printf(" intersectPoint %f %f \n ",intersectPoint.x,intersectPoint.y);
+            #endif
+            
+            if(!(intersectPoint.x == DBL_MAX && intersectPoint.y == DBL_MAX)){
+                // #ifdef DEBUG
+                //     printf(" polygonLine %f %f %f %f \n",polygonLine.start.x,polygonLine.start.y,polygonLine.stop.x,polygonLine.stop.y);
+                //     printf(" line %f %f %f %f \n",line.start.x,line.start.y,line.stop.x,line.stop.y);
+                //     printf(" intersectPoint %f %f \n ",intersectPoint.x,intersectPoint.y);
+                // #endif
                 if (foundCount == 0) {
                     foundCount++;
                     intersectLine.start = intersectPoint;
@@ -419,6 +502,7 @@ void intersectLinesWithPolygon(const vector<LineXY>& lineList, const vector<Stwa
                     break;
                 }
             }
+
         }
 
         if (foundCount == 2) {
@@ -431,14 +515,108 @@ StwayXY getCross(LineXY line1, LineXY line2)
 {
     StwayXY CrossP;
     //y = a * x + b;
-    double a1 = (line1.start.y - line1.stop.y) / (line1.start.x - line1.stop.x);
-    double b1 = line1.start.y - a1 * (line1.start.x);
 
-    double a2 = (line2.start.y - line2.stop.y) / (line2.start.x - line2.stop.x);
-    double b2 = line2.start.y - a1 * (line2.start.x);
 
-    CrossP.x = (b1 - b2) / (a2 - a1);
-    CrossP.y = a1 * CrossP.x + b1;
+    double a1,b1,a2,b2;
+    if((int)line1.start.x == (int)line1.stop.x){
+        a1 = 3;
+        b1 = line1.start.x;
+    }else if((int)line1.start.y == (int)line1.stop.y){
+        a1 = 0;
+        b1 = line1.start.y;
+    }else{
+        a1 = (line1.start.y - line1.stop.y) / (line1.start.x - line1.stop.x);
+        if(abs(int(a1)) > 2)
+            a1 = 3;
+        b1 = line1.start.y - a1 * (line1.start.x);
+    }
+
+    if((int)line2.start.x == (int)line2.stop.x){
+        a2 = 3;
+        b2 = line2.start.x;
+    }else if((int)line2.start.y == (int)line2.stop.y){
+        a2 = 0;
+        b2 = line2.start.y;
+    }else{
+        a2 = (line2.start.y - line2.stop.y) / (line2.start.x - line2.stop.x);
+        if(abs(int(a2)) > 2)
+            a1 = 3;
+        b2 = line2.start.y - a2 * (line2.start.x);
+    }
+
+    if((int)a2 == (int)a1){
+        CrossP.x = DBL_MAX;
+        CrossP.y = DBL_MAX;
+        #ifdef DEBUG
+            printf("22222222222222222 %d %d\n",int(a1),int(a2));
+            // if(CrossP.x != DBL_MAX)
+            // printf(" getCross444 %d %f %d\n ",abs(a1),fabs(a1),abs(a2));
+        #endif
+        if(int(a1) == 3 && int(a2) == 3 ){
+            CrossP.x = DBL_MAX;
+            CrossP.y = DBL_MAX;
+            #ifdef DEBUG
+                printf("11111111111111111 %d %d\n",int(a1),int(a2));
+                // if(CrossP.x != DBL_MAX)
+                // printf(" 11111111111111111 %d %d\n ",abs(a1-DBL_MAX),abs(a1-DBL_MAX));
+            #endif
+        }
+        
+    }else{
+        if((abs(int(a2)) == 3 && abs(int(a1)) == 0)){
+            CrossP.x = b2;
+            CrossP.y = b1;
+        }else if((abs(int(a1)) == 3 && abs(int(a2)) == 0)){
+            CrossP.x = b1;
+            CrossP.y = b2;
+        }else{
+            CrossP.x = (b1 - b2) / (a2 - a1);
+            CrossP.y = a1 * CrossP.x + b1;
+        }
+        
+
+        //if(line1.start.x == line1.stop.x || line1.start.y == line1.stop.y || line2.start.x == line2.stop.x || line2.start.y == line2.stop.y)
+
+        // if((line1.start.x <= line1.stop.x && CrossP.x >= line1.start.x && CrossP.x <= line1.stop.x)){
+        //     CrossP.x = -0.0;
+        //     CrossP.y = 0.0;
+        // }else
+        #ifdef DEBUG
+            printf(" getCross %f %f %f %f \n",a1,a2,b1,b2);
+            // if(CrossP.x != DBL_MAX)
+            printf(" getCross333 %f %f \n ",CrossP.x,CrossP.y);
+        #endif
+
+        if(((int)line1.start.x == (int)line1.stop.x && (int)CrossP.x != (int)line1.start.x) || ((int)line1.start.y == (int)line1.stop.y && (int)CrossP.y != (int)line1.start.y)){
+            #ifdef DEBUG
+                printf(" getCross222 %f %f\n",CrossP.x ,CrossP.y);
+                // printf(" intersectPoint %f %f \n ",intersectPoint.x,intersectPoint.y);
+            #endif
+            CrossP.x = DBL_MAX;
+            CrossP.y = DBL_MAX;
+        }else if(((int)line2.start.x == (int)line2.stop.x && (int)CrossP.x != (int)line2.start.x) || ((int)line2.start.y == (int)line2.stop.y && (int)CrossP.y != (int)line2.start.y)){
+            #ifdef DEBUG
+                printf(" getCross444 %f %f\n",CrossP.x ,CrossP.y);
+                // printf(" intersectPoint %f %f \n ",intersectPoint.x,intersectPoint.y);
+            #endif
+            CrossP.x = DBL_MAX;
+            CrossP.y = DBL_MAX;
+        }else if( (int)((int)CrossP.x - (int)line1.start.x)*((int)line1.stop.x - (int)CrossP.x) > 0 || (int)((int)CrossP.y - (int)line1.start.y)*((int)line1.stop.y - (int)CrossP.y) > 0){
+            #ifdef DEBUG
+                printf(" getCross111 %f %f\n",CrossP.x ,CrossP.y);
+                // printf(" intersectPoint %f %f \n ",intersectPoint.x,intersectPoint.y);
+            #endif
+            CrossP.x = DBL_MAX;
+            CrossP.y = DBL_MAX;
+        }
+
+    }
+    
+    #ifdef DEBUG
+        // printf(" getCross %f %f %f %f \n",a1,a2,b1,b2);
+        // if(CrossP.x != DBL_MAX)
+        // printf(" intersectPoint %f %f \n ",CrossP.x,CrossP.y);
+    #endif
     return CrossP;
 }
 
@@ -600,6 +778,8 @@ void convertGeoToNed(StwayGPS coord, StwayGPS origin, double* x, double* y) {
     *x = k * (ref_cos_lat * sin_lat - ref_sin_lat * cos_lat * cos_d_lon) * CONSTANTS_RADIUS_OF_EARTH;
     *y = k * cos_lat * sin(lon_rad - ref_lon_rad) * CONSTANTS_RADIUS_OF_EARTH;
 
+    // if(coord.lat == origin.lat)
+    //     *x = 0.0;
     // *z = -(coord.altitude() - origin.altitude());
 }
 
