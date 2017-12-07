@@ -1,23 +1,30 @@
 #include "regmap.h"
 
 vector<vector<StwayGPS> >  GenRegWaypoint(std::vector<struct wayPointGPS> gridPlygon, double gridSpacing, double gridAngle, 
-                                bool gridTriggerCamera, double gridTriggerCameraDist, double _turnaroundDist, uint8_t gridMode, uint8_t gridRefly) 
+                                bool gridTriggerCamera, double gridTriggerCameraDist, double turnaroundDist, uint8_t gridMode, uint8_t gridRefly) 
 {  
     _gridPlygon = gridPlygon;
     _gridSpacing = gridSpacing;
     _gridAngle = gridAngle;
     _gridTriggerCamera = gridTriggerCamera;
     _gridTriggerCameraDist = gridTriggerCameraDist;
+    _turnaroundDist = turnaroundDist;
     _gridMode = gridMode;
     _gridRefly = gridRefly;
     _hoverAndCaptureEnabled = true;
 
     generateGrid();
 
-    FILE *fp;
+    FILE *fp,*fp1;
     int i;
     if( (fp = fopen("dataman.txt","w+")) == NULL){
         if((fp = fopen("dataman.txt","w")) == NULL ){
+            return _transectSegments; 
+        } 
+    }
+
+    if( (fp1 = fopen("dataman1.txt","w+")) == NULL){
+        if((fp1 = fopen("dataman1.txt","w")) == NULL ){
             return _transectSegments; 
         } 
     }
@@ -25,10 +32,13 @@ vector<vector<StwayGPS> >  GenRegWaypoint(std::vector<struct wayPointGPS> gridPl
     //    fprintf(fp,"%lf %lf\n",gridPlygon[i].lat,gridPlygon[i].lon); 
     // }
     for(i = 0; i < _transectSegments.size(); i ++){
-        for(int j = 0; j < _transectSegments[i].size(); j ++)
-            fprintf(fp,"%0.7f\n",_transectSegments[i][j].lon); 
+        for(int j = 0; j < _transectSegments[i].size(); j ++){
+            fprintf(fp,"%0.7f\n",_transectSegments[i][j].lat); 
+            fprintf(fp1,"%0.7f\n",_transectSegments[i][j].lon); 
+        }
     }
     fclose(fp);
+    fclose(fp1);
 
     return _transectSegments;
 }  
@@ -212,6 +222,13 @@ int gridGenerator(const vector<StwayXY>& polygonPoints,  vector<vector<StwayXY> 
     rotatePoint_temp.y = smallBoundRect.y + smallBoundRect.lenth;
     boundPolygon.push_back(rotatePoint(rotatePoint_temp, boundingCenter, gridAngle));
     boundPolygon.push_back(boundPolygon[0]);
+
+    for (int i=0; i<boundPolygon.size(); i++) {
+        #ifdef DEBUG
+        printf("boundPolygon:x:y %f %f\n", boundPolygon[i].x,boundPolygon[i].y);
+        #endif
+    }
+
     RectXY largeBoundRect = boundingRect(boundPolygon);
 #ifdef DEBUG
     printf("smallBoundRect %d %f %f %f %f\n",(int)boundPolygon.size(),largeBoundRect.x,largeBoundRect.y,largeBoundRect.width,largeBoundRect.lenth);
@@ -244,24 +261,26 @@ int gridGenerator(const vector<StwayXY>& polygonPoints,  vector<vector<StwayXY> 
                 lineList.push_back(lineList_temp);
                 // qCDebug(SurveyMissionItemLog) << "line(" << lineList.last().x1() << ", " << lineList.last().y1() << ")-(" << lineList.last().x2() <<", " << lineList.last().y2() << ")";
 #ifdef DEBUG
-    printf("SurveyMissionItemLog %f %f %f %f\n",lineList.back().start.x,lineList.back().start.y,lineList.back().stop.x,lineList.back().stop.y);
+    printf("SurveyMissionItemLogs %f %f %f %f\n",lineList.back().start.x,lineList.back().start.y,lineList.back().stop.x,lineList.back().stop.y);
 #endif
                 x += gridSpacing;  
             }
         } else {
             // Generate transects from right to left
             // qCDebug(SurveyMissionItemLog) << "Generate right to left";
-            float x = largeBoundRect.x + largeBoundRect.width + (gridSpacing / 2);
+            float x = largeBoundRect.x + largeBoundRect.width;// + (gridSpacing / 2);
             while (x > largeBoundRect.x) {
-                float yTop =    largeBoundRect.y - 10000.0;
-                float yBottom = largeBoundRect.y- largeBoundRect.lenth+ 10000.0;
+                float yTop =    largeBoundRect.y;// - 10000.0;
+                float yBottom = largeBoundRect.y- largeBoundRect.lenth;//+ 10000.0;
 
                 LineXY lineList_temp = getLine(x, yTop, x, yBottom, boundingCenter, gridAngle);
                 lineList.push_back(lineList_temp);
 
                 // lineList += QLineF(_rotatePoint(QPointF(x, yTop), boundingCenter, gridAngle), _rotatePoint(QPointF(x, yBottom), boundingCenter, gridAngle));
                 // qCDebug(SurveyMissionItemLog) << "line(" << lineList.last().x1() << ", " << lineList.last().y1() << ")-(" << lineList.last().x2() <<", " << lineList.last().y2() << ")";
-
+#ifdef DEBUG
+    printf("SurveyMissionItemLogs %f %f %f %f\n",lineList.back().start.x,lineList.back().start.y,lineList.back().stop.x,lineList.back().stop.y);
+#endif
                 x -= gridSpacing;
             }
         }
@@ -271,10 +290,10 @@ int gridGenerator(const vector<StwayXY>& polygonPoints,  vector<vector<StwayXY> 
         if (entryLocation == EntryLocationTopLeft || entryLocation == EntryLocationTopRight) {
             // Generate transects from top to bottom
             // qCDebug(SurveyMissionItemLog) << "Generate top to bottom";
-            float y = largeBoundRect.y + (gridSpacing / 2);
+            float y = largeBoundRect.y;// + (gridSpacing / 2);
             while (y > largeBoundRect.y) {
-                float xLeft =   largeBoundRect.x - 10000.0;
-                float xRight =  largeBoundRect.x + largeBoundRect.width + 10000.0;
+                float xLeft =   largeBoundRect.x;// - 10000.0;
+                float xRight =  largeBoundRect.x + largeBoundRect.width;// + 10000.0;
 
                 LineXY lineList_temp = getLine(xLeft, y, xRight, y, boundingCenter, gridAngle);
                 lineList.push_back(lineList_temp);
@@ -569,6 +588,12 @@ StwayXY getCross(LineXY line1, LineXY line2)
         }else if((abs(int(a1)) == 3 && abs(int(a2)) == 0)){
             CrossP.x = b1;
             CrossP.y = b2;
+        }else if(abs(int(a1)) == 3){
+            CrossP.x = b1;
+            CrossP.y = a1 * CrossP.x + b1;
+        }else if(abs(int(a2)) == 3){
+            CrossP.x = b2;
+            CrossP.y = a1 * CrossP.x + b1;
         }else{
             CrossP.x = (b1 - b2) / (a2 - a1);
             CrossP.y = a1 * CrossP.x + b1;
@@ -601,14 +626,34 @@ StwayXY getCross(LineXY line1, LineXY line2)
             #endif
             CrossP.x = DBL_MAX;
             CrossP.y = DBL_MAX;
-        }else if( (int)((int)CrossP.x - (int)line1.start.x)*((int)line1.stop.x - (int)CrossP.x) > 0 || (int)((int)CrossP.y - (int)line1.start.y)*((int)line1.stop.y - (int)CrossP.y) > 0){
-            #ifdef DEBUG
-                printf(" getCross111 %f %f\n",CrossP.x ,CrossP.y);
-                // printf(" intersectPoint %f %f \n ",intersectPoint.x,intersectPoint.y);
-            #endif
-            CrossP.x = DBL_MAX;
-            CrossP.y = DBL_MAX;
+         }else if((int)((int)CrossP.x - (int)line1.start.x)*((int)CrossP.x - (int)line1.stop.x) > 0 || (int)((int)CrossP.y - (int)line1.start.y)*((int)CrossP.y - (int)line1.stop.y) > 0){
+            //else if((int)line1.start.x > (int)line1.stop.x){
+                #ifdef DEBUG
+                    printf(" getCross111 %f %f\n",CrossP.x ,CrossP.y);
+                    // printf(" intersectPoint %f %f \n ",intersectPoint.x,intersectPoint.y);
+                #endif
+                CrossP.x = DBL_MAX;
+                CrossP.y = DBL_MAX;
+            // }
         }
+        // else if((int)line1.stop.x > (int)line1.start.x){
+        //     if((int)((int)CrossP.x - (int)line1.start.x)*((int)CrossP.x - (int)line1.stop.x) > 0){
+        //         #ifdef DEBUG
+        //             printf(" getCross111 %f %f\n",CrossP.x ,CrossP.y);
+        //             // printf(" intersectPoint %f %f \n ",intersectPoint.x,intersectPoint.y);
+        //         #endif
+        //         CrossP.x = DBL_MAX;
+        //         CrossP.y = DBL_MAX;
+        //     }
+        // }
+        // }else if( (int)((int)CrossP.x - (int)line1.start.x)*((int)line1.stop.x - (int)CrossP.x) > 0 || (int)((int)CrossP.y - (int)line1.start.y)*((int)line1.stop.y - (int)CrossP.y) > 0){
+        //     #ifdef DEBUG
+        //         printf(" getCross111 %f %f\n",CrossP.x ,CrossP.y);
+        //         // printf(" intersectPoint %f %f \n ",intersectPoint.x,intersectPoint.y);
+        //     #endif
+        //     CrossP.x = DBL_MAX;
+        //     CrossP.y = DBL_MAX;
+        // }
 
     }
     
