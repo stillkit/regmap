@@ -1,17 +1,18 @@
 #include "regmap.h"
 
-vector<vector<StwayGPS> >  GenRegWaypoint(std::vector<struct wayPointGPS> gridPlygon, double gridSpacing, double gridAngle, 
+vector<vector<StwayGPS> >  GenRegWaypoint(std::vector<struct wayPointGPS> gridPlygon, double gridSpacing, bool hoverAndCaptureEnabled, double hoverAndCaptureDelaySeconds, double gridAngle, 
                                 bool gridTriggerCamera, double gridTriggerCameraDist, double turnaroundDist, uint8_t gridMode, uint8_t gridRefly) 
 {  
     _gridPlygon = gridPlygon;
     _gridSpacing = gridSpacing;
+    _hoverAndCaptureEnabled = hoverAndCaptureEnabled;
+    _hoverAndCaptureDelaySeconds = hoverAndCaptureDelaySeconds;
     _gridAngle = gridAngle;
     _gridTriggerCamera = gridTriggerCamera;
     _gridTriggerCameraDist = gridTriggerCameraDist;
     _turnaroundDist = turnaroundDist;
     _gridMode = gridMode;
     _gridRefly = gridRefly;
-    _hoverAndCaptureEnabled = true;
 
     generateGrid();
 
@@ -58,13 +59,13 @@ void generateGrid(void)
     _reflyTransectSegments.clear();
     _additionalFlightDelaySeconds = 0;
 
-    vector<StwayXY>           polygonPoints;
+    std::vector<StwayXY>           polygonPoints_tmp;
     vector<vector<StwayXY> >   transectSegments;
 
     // Convert polygon to NED
     StwayGPS tangentOrigin = _gridPlygon[0];
     #ifdef DEBUG
-    printf("Convert polygon to NED - tangentOrigin %lf %lf\n",tangentOrigin.lat,tangentOrigin.lon);
+    printf("Convert polygon to NED - tangentOrigin %lf %lf %d\n",tangentOrigin.lat,tangentOrigin.lon,(int)_gridPlygon.size());
     #endif
     for (int i=0; i<_gridPlygon.size(); i++) {
         StwayXY tmp;
@@ -75,13 +76,26 @@ void generateGrid(void)
         } else {
             convertGeoToNed(vertex, tangentOrigin, &tmp.y, &tmp.x);
         }
-        polygonPoints.push_back(tmp);
+        polygonPoints_tmp.push_back(tmp);
         #ifdef DEBUG
-        printf("vertex:x:y %f %f\n", polygonPoints.back().x,polygonPoints.back().y);
+        printf("vertex:x:y %f %f\n", polygonPoints_tmp.back().x,polygonPoints_tmp.back().y);
         #endif
     }
 
-    // polygonPoints = _convexPolygon(polygonPoints);
+    // std::vector<StwayXY> polygonPoints = ConvexHull(polygonPoints_tmp);//convexPolygon(polygonPoints_tmp);ConvexHull
+    std::vector<StwayXY> polygonPoints = polygonPoints_tmp;
+    // vector<StwayXY> polygonPoints(convexPolygon(polygonPoints_tmp));
+    //vector<StwayXY> polygonPoints = polygonPoints_tmp;
+
+    #ifdef DEBUG
+    printf("convexPolygon vertex:x:y %d\n", (int)polygonPoints.size());
+    #endif
+
+    for (int i=0; i<polygonPoints.size(); i++) {
+        #ifdef DEBUG
+        printf("convexPolygon vertex:x:y %f %f\n", polygonPoints[i].x,polygonPoints[i].y);
+        #endif
+    }
 
     // double coveredArea = 0.0;
     // for (int i=0; i<polygonPoints.count(); i++) {
@@ -127,9 +141,12 @@ void generateGrid(void)
     // _setCameraShots(cameraShots);
     _cameraShots = cameraShots;
 
-    // if (_hoverAndCaptureEnabled()) {
-    //     _additionalFlightDelaySeconds = cameraShots * _hoverAndCaptureDelaySeconds;
-    // }
+    if (_hoverAndCaptureEnabled) {
+        _additionalFlightDelaySeconds = cameraShots * _hoverAndCaptureDelaySeconds;
+        #ifdef DEBUG
+            printf("_additionalFlightDelaySeconds %f\n", _additionalFlightDelaySeconds);
+        #endif
+    }
     // emit additionalTimeDelayChanged(_additionalFlightDelaySeconds);
 
     // emit gridPointsChanged();
@@ -429,6 +446,324 @@ printf(" Polygon entry point 1\n");
     return cameraShots;
 }
 
+// double ccw(StwayXY pt1, StwayXY pt2, StwayXY pt3)
+// {
+//     return (pt2.x-pt1.x)*(pt3.y-pt1.y) - (pt2.y-pt1.y)*(pt3.x-pt1.x);
+// }
+
+// double dp(StwayXY pt1, StwayXY pt2)
+// {
+//     double a1;
+//     if((int)pt2.x == (int)pt1.x){
+//         a1 = 3;
+//         // printf("222222222222\n");
+//         // b1 = line1.start.x;
+//     }else if((int)pt2.y == (int)pt1.y){
+//         a1 = 0;
+//         // printf("33333333333333\n");
+//         // b1 = line1.start.y;
+//     }else{
+//         a1 = (pt2.y - pt1.y) / (pt2.x - pt1.x);
+//         // printf("1111111111111 %f %f %f %f %f\n",a1,(pt2.y - pt1.y),(pt2.x - pt1.x), pt2.x, pt1.x);
+//         if(abs(int(a1)) > 2)
+//             a1 = int(a1) > 0? 3 : -3;
+//         // b1 = pt1.y - a1 * (pt1.x);
+//     }
+//     return a1;
+//     // return (pt2.x-pt1.x)/sqrt((pt2.x-pt1.x)*(pt2.x-pt1.x) + (pt2.y-pt1.y)*(pt2.y-pt1.y));
+// }
+
+// void swapPoints(vector<StwayXY>& points, int index1, int index2)
+// {
+//     StwayXY temp = points[index1];
+//     points[index1] = points[index2];
+//     points[index2] = temp;
+// }
+
+// std::vector<StwayXY> convexPolygon(vector<StwayXY>  polygon)
+// {
+//     // We use the Graham scan algorithem to convert the possibly concave polygon to a convex polygon
+//     // https://en.wikipedia.org/wiki/Graham_scan
+
+//     vector<StwayXY> workPolygon = polygon;
+//     StwayXY tmp;
+//     #ifdef DEBUG
+//     printf(" convexPolygon \n");
+//     #endif
+
+//     // First point must be lowest y-coordinate point
+//     for (int i=1; i<workPolygon.size(); i++) {
+//         if (workPolygon[i].y < workPolygon[0].y) {
+//             swapPoints(workPolygon, i, 0);
+//             // tmp = workPolygon[i];
+//             // workPolygon[i] = workPolygon[0];
+//             // workPolygon[0] = tmp;
+//         }
+//     }
+
+//     for (int i=0; i<workPolygon.size(); i++) {
+//         #ifdef DEBUG
+//         printf(" convexPolygon2 x:y %f %f \n",workPolygon[i].x,workPolygon[i].y);
+//         #endif
+//     }
+
+//      #ifdef DEBUG
+//     printf(" convexPolygon 2 \n");
+//     #endif
+
+//     // Sort the points by angle with first point
+//     // for (int i=1; i<workPolygon.size(); i++) {
+//     //     double angle = dp(workPolygon[0], workPolygon[i]);
+//     //     for (int j=i+1; j<workPolygon.size(); j++) {
+
+//     //         printf("%d %d %f %f %f %f\n",i,j,dp(workPolygon[0], workPolygon[j]),angle,workPolygon[j].x,workPolygon[0].x);
+//     //         if (dp(workPolygon[0], workPolygon[j]) > angle) {
+//     //             swapPoints(workPolygon, i, j);
+//     //             printf("33333333333333\n");
+//     //             for (int i=0; i<workPolygon.size(); i++) {
+//     //                 #ifdef DEBUG
+//     //                 printf(" convexPolygon3 x:y %f %f \n",workPolygon[i].x,workPolygon[i].y);
+//     //                 #endif
+//     //             }
+//     //             // tmp = workPolygon[i];
+//     //             // workPolygon[i] = workPolygon[j];
+//     //             // workPolygon[j] = tmp;
+//     //             // angle = dp(workPolygon[0], workPolygon[j]);
+//     //         }
+//     //     }
+//     // }
+
+//     for (int i=0; i<workPolygon.size(); i++) {
+//         #ifdef DEBUG
+//         printf(" convexPolygon1 x:y %f %f \n",workPolygon[i].x,workPolygon[i].y);
+//         #endif
+//     }
+//      #ifdef DEBUG
+//     printf(" convexPolygon 1\n");
+//     #endif
+
+//     // Perform the the Graham scan
+
+//     workPolygon[0] = workPolygon.back();  // Sentinel for algo stop
+//     int convexCount = 1;                        // Number of points on the convex hull.
+
+//     for (int i=2; i<polygon.size(); i++) {
+//         while (ccw(workPolygon[convexCount-1], workPolygon[convexCount], workPolygon[i]) <= 0) {
+//             if (convexCount > 1) {
+//                 convexCount -= 1;
+//             } else if (i == polygon.size() - 1) {
+//                 break;
+//             } else {
+//                 i++;
+//             }
+//         }
+//         convexCount++;
+//         printf("%d %d\n",convexCount,i);
+//         swapPoints(workPolygon, convexCount, i);
+//         // tmp = workPolygon[convexCount];
+//         // workPolygon[convexCount] = workPolygon[i];
+//         // workPolygon[i] = tmp;
+//     }
+//     for (int i=0; i<workPolygon.size(); i++) {
+//         #ifdef DEBUG
+//         printf(" convexPolygon3 x:y %f %f \n",workPolygon[i].x,workPolygon[i].y);
+//         #endif
+//     }
+//      #ifdef DEBUG
+//     printf(" convexPolygon 3 %d %d\n",(int)workPolygon.size(),convexCount);
+//     #endif
+//     vector<StwayXY> res(workPolygon.begin(),workPolygon.begin()+convexCount);
+//     // polygonPoints =  (vector<StwayXY>)malloc(convexCount*sizeof(StwayXY));
+//     // for(int i = 0; i < convexCount; i ++)
+//     //     res.push_back(workPolygon[i]);
+
+//     for (int i=0; i<res.size(); i++) {
+//         #ifdef DEBUG
+//         printf(" res x:y %f %f \n",res[i].x,res[i].y);
+//         #endif
+//     }
+//     // polygonPoints.swap(res);
+//     //  #ifdef DEBUG
+//     // printf(" convexPolygon 4\n");
+//     // #endif
+//     return res;
+// }
+
+// //向量（x1,y1）,(x2,y2)的叉积
+// double CrossMul(StwayXY x1,StwayXY x2)
+// {
+//     // return x1*y2-x2*y1;
+//     return x1.x*x2.y-x2.x*x1.y;
+// }
+// //向量（x1,y1）,(x2,y2)的点积
+// double DotMul(StwayXY x1,StwayXY x2)
+// {
+//     // return x1*x2+y1*y2;
+//     return x1.x*x2.x+x1.y*x2.y;
+// }
+//向量（x1,y1）,(x2,y2)的叉积
+double CrossMul(double x1,double y1,double x2,double y2)
+{
+    return x1*y2-x2*y1;
+}
+//向量（x1,y1）,(x2,y2)的点积
+double DotMul(double x1,double y1,double x2,double y2)
+{
+    return x1*x2+y1*y2;
+}
+//跨立判断
+//判断点c是在向量ab的逆时针方向还是顺时针方向，大于零逆时针，等于0则共线
+double CrossMul(StwayXY a,StwayXY b,StwayXY c)
+{
+    return CrossMul(b.x-a.x,b.y-a.y,c.x-a.x,c.y-a.y);
+}
+//计算向量ab和ac点积
+double DotMul(StwayXY a,StwayXY b,StwayXY c)
+{
+    return DotMul(b.x-a.x,b.y-a.y,c.x-a.x,c.y-a.y);
+}
+//判断浮点数符号
+int doublecmp(double d)
+{
+    if(fabs(d)<10e-6)
+        return 0;
+    return d>0?1:-1;
+}
+//判断同一直线上的三个点位置，点c是否在点ab之间
+bool betweenCmp(StwayXY a,StwayXY b,StwayXY c)
+{
+    if(doublecmp(DotMul(c,a,b))<=0)
+        return true;
+    return false;
+}
+//判断j是否在base->i向量的左边或当共线时j是否位于它们的线段之间
+bool isLeftorNearer(StwayXY base,StwayXY i,StwayXY j)
+{
+    if(CrossMul(base,i,j)>0)
+        return true;
+    if(CrossMul(base,i,j)==0 && betweenCmp(base,i,j))
+        return true;
+    return false;
+}
+void swap(StwayXY& a,StwayXY& b)
+{
+    StwayXY temp = b;
+    b=a;
+    a=temp;
+}
+//以s中的最低点为参考点，对其他所有点进行极角排序（逆时针）
+//共线时离参考点较远的点排在前面，凸包的起始边共线点从近到远排列
+void sortpoint(std::vector<StwayXY> s)
+{
+    //找最低点
+    for(int i=1;i<s.size();i++)
+    {
+        if(s[i].y<s[0].y || (s[i].y==s[0].y && s[i].x<s[0].x))
+            swap(s[0],s[i]);
+    }
+    #ifdef DEBUG
+        for(int i=0;i<s.size();i++)
+        {
+            printf(" sortpoint %f %f\n",s[i].x,s[i].y);
+        }
+    #endif
+    qsortpoint(s,1,(int)s.size());
+    #ifdef DEBUG
+        for(int i=0;i<s.size();i++)
+        {
+            printf(" qsortpoint %f %f\n",s[i].x,s[i].y);
+        }
+    #endif
+    // 将起始边上的共线点重新排列
+    sortstartedge(s);
+    #ifdef DEBUG
+        for(int i=0;i<s.size();i++)
+        {
+            printf(" sortstartedge %f %f\n",s[i].x,s[i].y);
+        }
+    #endif
+    // return;
+}
+void sortstartedge(std::vector<StwayXY> s)
+{
+    int i,j;
+    for(i=2;i<s.size();i++)
+    {
+        if(CrossMul(s[0],s[1],s[i])!=0)
+            break;
+    }
+    for(j=1;j<(i+1)/2;j++)
+        swap(s[j],s[i-j]);
+}
+
+//将点按极角逆时针排序
+void qsortpoint(std::vector<StwayXY> s,int start,int end)
+{
+    if(start>=end)
+        return;
+    StwayXY partition = s[end-1];
+    int i=start-1,j=start-1;
+    while(++j<end-1)
+    {
+        if(isLeftorNearer(s[0],s[j],partition))
+        {
+            swap(s[++i],s[j]);
+        }
+    }
+    swap(s[++i],s[end-1]);
+    qsortpoint(s,start,i);
+    qsortpoint(s,i+1,end);
+}
+// std::vector<StwayXY> convexPolygon(vector<StwayXY>  polygon)
+std::vector<StwayXY> ConvexHull(vector<StwayXY>  s)
+{
+    vector<StwayXY> result;
+    sortpoint(s);
+
+    if(s.size()<=3)
+        return s;
+    #ifdef DEBUG
+    printf("CrossMul11111 \n");
+    #endif
+    int top=2;
+    int i;
+    for(i=0;i<2;i++)
+        result.push_back(s[i]);
+    while(i<s.size())
+    {
+        //用<号判断则包含凸包边上的共线点，<=号判断则只包含凸包顶点
+        if(top >= 2 && CrossMul(result[top-2],result[top-1],s[i])<=0)
+        {
+            
+            #ifdef DEBUG
+            printf("CrossMul11111 %d %f %f %f %f %f %f\n",top,result[top-2].x,result[top-2].y,result[top-1].x,result[top-1].y,s[i].x,s[i].y);
+            #endif
+            top--;
+        }
+        else
+        {
+             #ifdef DEBUG
+            printf("CrossMul222222 %d %f %f %f %f %f %f\n",top,result[top-2].x,result[top-2].y,result[top-1].x,result[top-1].y,s[i].x,s[i].y);
+            #endif
+            result.push_back(s[i++]);
+            top ++;
+        }
+    }
+    #ifdef DEBUG
+    printf("top1 %d\n",top);
+    #endif
+    //最后加入起点形成闭包
+    while(top > 2 && CrossMul(result[top-2],result[top-1],s[0])<=0 )
+    {
+        top--;
+    }
+    #ifdef DEBUG
+    printf("top2 %d\n",top);
+    #endif
+    vector<StwayXY> res(result.begin(),result.begin()+top);
+    return res;
+}
+
 void adjustLineDirection(const vector<LineXY>& lineList, vector<LineXY>& resultLines)
 {
     // qreal firstAngle = 0;
@@ -626,7 +961,7 @@ StwayXY getCross(LineXY line1, LineXY line2)
             #endif
             CrossP.x = DBL_MAX;
             CrossP.y = DBL_MAX;
-         }else if((int)((int)CrossP.x - (int)line1.start.x)*((int)CrossP.x - (int)line1.stop.x) > 0 || (int)((int)CrossP.y - (int)line1.start.y)*((int)CrossP.y - (int)line1.stop.y) > 0){
+         }else if((int)((int)CrossP.x - (int)line2.start.x)*((int)CrossP.x - (int)line2.stop.x) > 0 || (int)((int)CrossP.y - (int)line2.start.y)*((int)CrossP.y - (int)line2.stop.y) > 0){
             //else if((int)line1.start.x > (int)line1.stop.x){
                 #ifdef DEBUG
                     printf(" getCross111 %f %f\n",CrossP.x ,CrossP.y);

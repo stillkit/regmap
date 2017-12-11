@@ -63,8 +63,9 @@ enum EntryLocation {
 
 std::vector<struct wayPointGPS> _gridPlygon;
 double 							_gridSpacing;
+double              _hoverAndCaptureDelaySeconds;
 double 							_gridAngle;
-bool 							 _gridTriggerCamera;
+bool 							  _gridTriggerCamera;
 bool 							  _hoverAndCaptureEnabled;
 double							_gridTriggerCameraDist;
 double 							_turnaroundDist;
@@ -81,13 +82,14 @@ vector<vector<StwayGPS> >    	_reflyTransectSegments; ///< Refly segments
 StwayGPS                  		_coordinate;
 StwayGPS                  		_exitCoordinate;
 double                        _additionalFlightDelaySeconds;
+// vector<StwayXY> polygonPoints;
 
 int             _cameraShots;
 int             _missionCommandCount;
 double          _surveyDistance;
 int             _gridEntryLocation = EntryLocationTopLeft;
 
-vector<vector<StwayGPS> >   GenRegWaypoint(std::vector<struct wayPointGPS> gridPlygon, double gridSpacing, double gridAngle, 
+vector<vector<StwayGPS> >   GenRegWaypoint(std::vector<struct wayPointGPS> gridPlygon, double gridSpacing, bool hoverAndCaptureEnabled, double hoverAndCaptureDelaySeconds, double gridAngle, 
                     bool gridTriggerCamera, double gridTriggerCameraDist, double _turnaroundDist, uint8_t gridMode, uint8_t gridRefly);
 void convertGeoToNed(StwayGPS coord, StwayGPS origin, double* x, double* y);
 void convertNedToGeo(double x, double y, StwayGPS origin, StwayGPS *coord);
@@ -108,5 +110,25 @@ StwayXY pointAt(LineXY line, double proportion);
 LineXY getTranslate(LineXY line, StwayXY center);
 double lineLenth(LineXY line);
 void adjustLineDirection(const vector<LineXY>& lineList, vector<LineXY>& resultLines);
+// double ccw(StwayXY pt1, StwayXY pt2, StwayXY pt3);
+// double dp(StwayXY pt1, StwayXY pt2);
+// void swapPoints(vector<StwayXY>& points, int index1, int index2);
+// std::vector<StwayXY> convexPolygon(vector<StwayXY> polygon);
+std::vector<StwayXY> ConvexHull(vector<StwayXY>  polygon);
+void qsortpoint(std::vector<StwayXY> s,int start,int end);
+void sortstartedge(std::vector<StwayXY> s);
+void sortpoint(std::vector<StwayXY> s);
+void swap(StwayXY& a,StwayXY& b);
+bool isLeftorNearer(StwayXY base,StwayXY i,StwayXY j);
+bool betweenCmp(StwayXY a,StwayXY b,StwayXY c);
+int doublecmp(double d);
+double CrossMul(double x1,double y1,double x2,double y2);
+//向量（x1,y1）,(x2,y2)的点积
+double DotMul(double x1,double y1,double x2,double y2);
+//跨立判断
+//判断点c是在向量ab的逆时针方向还是顺时针方向，大于零逆时针，等于0则共线
+double CrossMul(StwayXY a,StwayXY b,StwayXY c);
+//计算向量ab和ac点积
+double DotMul(StwayXY a,StwayXY b,StwayXY c);
 
 #endif 
