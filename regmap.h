@@ -40,6 +40,10 @@ typedef struct wayPointGPS{
 typedef struct wayPointXy{
   double x;
   double y;
+  bool operator==(const wayPointXy b) const  
+  {  
+      return this->x == b.x && this->y == b.y;  
+  } 
 }StwayXY;
 
 typedef struct lineXy{
@@ -82,6 +86,9 @@ vector<vector<StwayGPS> >    	_reflyTransectSegments; ///< Refly segments
 StwayGPS                  		_coordinate;
 StwayGPS                  		_exitCoordinate;
 double                        _additionalFlightDelaySeconds;
+// std::vector<int>              _polygonConcavePointsSer;
+StwayXY         _okDegree;
+// std::vector<StwayXY>          _polygonConcavePoints;
 // vector<StwayXY> polygonPoints;
 
 int             _cameraShots;
@@ -115,9 +122,9 @@ void adjustLineDirection(const vector<LineXY>& lineList, vector<LineXY>& resultL
 // void swapPoints(vector<StwayXY>& points, int index1, int index2);
 // std::vector<StwayXY> convexPolygon(vector<StwayXY> polygon);
 std::vector<StwayXY> ConvexHull(vector<StwayXY>  polygon);
-void qsortpoint(std::vector<StwayXY> s,int start,int end);
-void sortstartedge(std::vector<StwayXY> s);
-void sortpoint(std::vector<StwayXY> s);
+void qsortpoint(std::vector<StwayXY> &s,int start,int end);
+void sortstartedge(std::vector<StwayXY> &s);
+void sortpoint(std::vector<StwayXY> &s);
 void swap(StwayXY& a,StwayXY& b);
 bool isLeftorNearer(StwayXY base,StwayXY i,StwayXY j);
 bool betweenCmp(StwayXY a,StwayXY b,StwayXY c);
@@ -130,5 +137,20 @@ double DotMul(double x1,double y1,double x2,double y2);
 double CrossMul(StwayXY a,StwayXY b,StwayXY c);
 //计算向量ab和ac点积
 double DotMul(StwayXY a,StwayXY b,StwayXY c);
+bool getOkDegree(vector<StwayXY> polygonPoints, vector<int> polygonConcavePointsSer);
+double getSlope(StwayXY p1, StwayXY p2);
+double transformQuadrant(double angle);
+void transformQuadrantPlus(StwayXY &degree_res);
+std::vector<StwayXY> zoomPolygon(std::vector<StwayXY> polygonPoints, double gridSpacing);
+wayPointXy addWayPointXy(wayPointXy a, wayPointXy b);
+wayPointXy minusWayPointXy(wayPointXy a, wayPointXy b);
+double multyWayPointXy(wayPointXy a, wayPointXy b);
+wayPointXy multyWayPointXy(wayPointXy a, double value);
+double xlJi(wayPointXy a, wayPointXy b);
+bool zoomPolygonGrid(const vector<StwayXY>& polygonPoints,  vector<vector<StwayXY> >& transectSegments, bool refly);
+std::vector<StwayXY> zoomPolygon(std::vector<StwayXY> polygonPoints, double gridSpacing);
+double pointToSegDist(wayPointXy s, wayPointXy x1, wayPointXy x2);
+double getMinPoiintToSegDist(const vector<StwayXY>& polygonPoints);
+bool isCanGenerateGrid(std::vector<StwayXY> polygonPoints);
 
 #endif 

@@ -14,6 +14,8 @@ vector<vector<StwayGPS> >  GenRegWaypoint(std::vector<struct wayPointGPS> gridPl
     _gridMode = gridMode;
     _gridRefly = gridRefly;
 
+
+
     generateGrid();
 
     FILE *fp,*fp1;
@@ -32,6 +34,7 @@ vector<vector<StwayGPS> >  GenRegWaypoint(std::vector<struct wayPointGPS> gridPl
     // for(i = 0; i < _gridPlygon.size(); i ++){
     //    fprintf(fp,"%lf %lf\n",gridPlygon[i].lat,gridPlygon[i].lon); 
     // }
+    fprintf(fp,"_okDegree %f %f\n",_okDegree.x,_okDegree.y);
     for(i = 0; i < _transectSegments.size(); i ++){
         for(int j = 0; j < _transectSegments[i].size(); j ++){
             fprintf(fp,"%0.7f\n",_transectSegments[i][j].lat); 
@@ -44,6 +47,11 @@ vector<vector<StwayGPS> >  GenRegWaypoint(std::vector<struct wayPointGPS> gridPl
     return _transectSegments;
 }  
 
+bool isCanGenerateGrid(std::vector<StwayXY> polygonPoints){
+    // double getMinPoiintToSegDist(const vector<StwayXY>& polygonPoints);
+    return true;
+}
+
 void generateGrid(void)
 {
     // if (_ignoreRecalc) {
@@ -53,6 +61,7 @@ void generateGrid(void)
     if (_gridPlygon.size() < 3 || _gridSpacing <= 0) {
         return;
     }
+
 
     _simpleGridPoints.clear();
     _transectSegments.clear();
@@ -81,22 +90,54 @@ void generateGrid(void)
         printf("vertex:x:y %f %f\n", polygonPoints_tmp.back().x,polygonPoints_tmp.back().y);
         #endif
     }
+    if(!isCanGenerateGrid(polygonPoints_tmp))
+        return ;
 
     // std::vector<StwayXY> polygonPoints = ConvexHull(polygonPoints_tmp);//convexPolygon(polygonPoints_tmp);ConvexHull
-    std::vector<StwayXY> polygonPoints = polygonPoints_tmp;
+    std::vector<StwayXY> polygonPoints =polygonPoints_tmp;
+    vector<StwayXY>::iterator it;  
+    std::vector<int>  polygonConcavePointsSer;
+    for(int i = 0; i < polygonPoints_tmp.size(); i ++){
+        it=find(polygonPoints.begin(),polygonPoints.end(),polygonPoints_tmp[i]);   
+        if(it == polygonPoints.end())
+        {
+            polygonConcavePointsSer.push_back(i);
+        }
+    }
+    #ifdef DEBUG
+    for (int i=0; i<polygonConcavePointsSer.size(); i++) {
+        printf("_polygonConcavePointsSer %d\n", polygonConcavePointsSer[i]);
+    }
+    #endif
+
+    double _gridAngle_tmp;
+    if(getOkDegree(polygonPoints_tmp, polygonConcavePointsSer)){
+        if(_gridAngle < 0)
+            _gridAngle_tmp = 180 + _gridAngle;
+        else
+            _gridAngle_tmp = _gridAngle;
+        if(_gridAngle_tmp < _okDegree.x || _gridAngle_tmp > _okDegree.y){
+            _gridAngle = _okDegree.x;
+            // polygonPoints = polygonPoints_tmp;
+            // polygonPoints = zoomPolygon(polygonPoints_tmp);
+        }
+    }else{
+        // polygonPoints = zoomPolygon(polygonPoints_tmp);
+    }
+
+    
+    // std::vector<StwayXY> polygonPoints = polygonPoints_tmp;
     // vector<StwayXY> polygonPoints(convexPolygon(polygonPoints_tmp));
     //vector<StwayXY> polygonPoints = polygonPoints_tmp;
 
     #ifdef DEBUG
     printf("convexPolygon vertex:x:y %d\n", (int)polygonPoints.size());
     #endif
-
+    #ifdef DEBUG
     for (int i=0; i<polygonPoints.size(); i++) {
-        #ifdef DEBUG
         printf("convexPolygon vertex:x:y %f %f\n", polygonPoints[i].x,polygonPoints[i].y);
-        #endif
     }
-
+    #endif
     // double coveredArea = 0.0;
     // for (int i=0; i<polygonPoints.count(); i++) {
     //     if (i != 0) {
@@ -109,7 +150,12 @@ void generateGrid(void)
 
     // Generate grid
     int cameraShots = 0;
-    cameraShots += gridGenerator(polygonPoints, transectSegments, false /* refly */);
+    if(_gridMode == 0)
+        cameraShots += gridGenerator(polygonPoints, transectSegments, false /* refly */);
+    else if(_gridMode == 1){
+        if(!zoomPolygonGrid(polygonPoints, transectSegments, false /* refly */))
+            return ;
+    }
     convertTransectToGeo(transectSegments, tangentOrigin, _transectSegments);
     // _adjustTransectsToEntryPointLocation(_transectSegments);
     appendGridPointsFromTransects(_transectSegments);
@@ -269,10 +315,10 @@ int gridGenerator(const vector<StwayXY>& polygonPoints,  vector<vector<StwayXY> 
         if (entryLocation == EntryLocationTopLeft || entryLocation == EntryLocationBottomLeft) {
             // Generate transects from left to right
             // qCDebug(SurveyMissionItemLog) << "Generate left to right";
-            float x = largeBoundRect.x;// - (gridSpacing / 2);
+            float x = largeBoundRect.x - (gridSpacing / 2);
             while (x < largeBoundRect.x + largeBoundRect.width) {
-                float yTop =    largeBoundRect.y;// - 10000.0;
-                float yBottom = largeBoundRect.y + largeBoundRect.lenth;// + 10000.0;
+                float yBottom =    largeBoundRect.y - 100.0;
+                float yTop = largeBoundRect.y + largeBoundRect.lenth + 100.0;
 
                 LineXY lineList_temp = getLine(x, yTop, x, yBottom, boundingCenter, gridAngle);
                 lineList.push_back(lineList_temp);
@@ -285,10 +331,10 @@ int gridGenerator(const vector<StwayXY>& polygonPoints,  vector<vector<StwayXY> 
         } else {
             // Generate transects from right to left
             // qCDebug(SurveyMissionItemLog) << "Generate right to left";
-            float x = largeBoundRect.x + largeBoundRect.width;// + (gridSpacing / 2);
+            float x = largeBoundRect.x + largeBoundRect.width + (gridSpacing / 2);
             while (x > largeBoundRect.x) {
-                float yTop =    largeBoundRect.y;// - 10000.0;
-                float yBottom = largeBoundRect.y- largeBoundRect.lenth;//+ 10000.0;
+                float yBottom =    largeBoundRect.y  - 100.0;
+                float yTop = largeBoundRect.y + largeBoundRect.lenth + 100.0;
 
                 LineXY lineList_temp = getLine(x, yTop, x, yBottom, boundingCenter, gridAngle);
                 lineList.push_back(lineList_temp);
@@ -296,7 +342,7 @@ int gridGenerator(const vector<StwayXY>& polygonPoints,  vector<vector<StwayXY> 
                 // lineList += QLineF(_rotatePoint(QPointF(x, yTop), boundingCenter, gridAngle), _rotatePoint(QPointF(x, yBottom), boundingCenter, gridAngle));
                 // qCDebug(SurveyMissionItemLog) << "line(" << lineList.last().x1() << ", " << lineList.last().y1() << ")-(" << lineList.last().x2() <<", " << lineList.last().y2() << ")";
 #ifdef DEBUG
-    printf("SurveyMissionItemLogs %f %f %f %f\n",lineList.back().start.x,lineList.back().start.y,lineList.back().stop.x,lineList.back().stop.y);
+    printf("SurveyMissionItemLogs1111 %f %f %f %f\n",lineList.back().start.x,lineList.back().start.y,lineList.back().stop.x,lineList.back().stop.y);
 #endif
                 x -= gridSpacing;
             }
@@ -307,31 +353,35 @@ int gridGenerator(const vector<StwayXY>& polygonPoints,  vector<vector<StwayXY> 
         if (entryLocation == EntryLocationTopLeft || entryLocation == EntryLocationTopRight) {
             // Generate transects from top to bottom
             // qCDebug(SurveyMissionItemLog) << "Generate top to bottom";
-            float y = largeBoundRect.y;// + (gridSpacing / 2);
+            float y = largeBoundRect.y + largeBoundRect.lenth + (gridSpacing / 2);
             while (y > largeBoundRect.y) {
-                float xLeft =   largeBoundRect.x;// - 10000.0;
-                float xRight =  largeBoundRect.x + largeBoundRect.width;// + 10000.0;
+                float xLeft =   largeBoundRect.x - 100.0;
+                float xRight =  largeBoundRect.x + largeBoundRect.width + 100.0;
 
                 LineXY lineList_temp = getLine(xLeft, y, xRight, y, boundingCenter, gridAngle);
                 lineList.push_back(lineList_temp);
                 // lineList += QLineF(_rotatePoint(QPointF(xLeft, y), boundingCenter, gridAngle), _rotatePoint(QPointF(xRight, y), boundingCenter, gridAngle));
                 // qCDebug(SurveyMissionItemLog) << "y:xLeft:xRight" << y << xLeft << xRight << "line(" << lineList.last().x1() << ", " << lineList.last().y1() << ")-(" << lineList.last().x2() <<", " << lineList.last().y2() << ")";
-
+#ifdef DEBUG
+    printf("SurveyMissionItemLogs2222 %f %f %f %f\n",lineList.back().start.x,lineList.back().start.y,lineList.back().stop.x,lineList.back().stop.y);
+#endif
                 y -= gridSpacing;
             }
         } else {
             // Generate transects from bottom to top
             // qCDebug(SurveyMissionItemLog) << "Generate bottom to top";
             float y = largeBoundRect.y - (gridSpacing / 2);
-            while (y < largeBoundRect.y-largeBoundRect.lenth) {
-                float xLeft =   largeBoundRect.x - 10000.0;
-                float xRight =  largeBoundRect.x+largeBoundRect.width + 10000.0;
+            while (y < largeBoundRect.y+largeBoundRect.lenth) {
+                float xLeft =   largeBoundRect.x - 100.0;
+                float xRight =  largeBoundRect.x+largeBoundRect.width + 100.0;
 
                 LineXY lineList_temp = getLine(xLeft, y, xRight, y, boundingCenter, gridAngle);
                 lineList.push_back(lineList_temp);
                 // lineList += QLineF(_rotatePoint(QPointF(xLeft, y), boundingCenter, gridAngle), _rotatePoint(QPointF(xRight, y), boundingCenter, gridAngle));
                 // qCDebug(SurveyMissionItemLog) << "y:xLeft:xRight" << y << xLeft << xRight << "line(" << lineList.last().x1() << ", " << lineList.last().y1() << ")-(" << lineList.last().x2() <<", " << lineList.last().y2() << ")";
-
+#ifdef DEBUG
+    printf("SurveyMissionItemLogs3333 %f %f %f %f\n",lineList.back().start.x,lineList.back().start.y,lineList.back().stop.x,lineList.back().stop.y);
+#endif
                 y += gridSpacing;
             }
         }
@@ -588,7 +638,453 @@ printf(" Polygon entry point 1\n");
 //     // #endif
 //     return res;
 // }
+double getMinPoiintToSegDist(const vector<StwayXY>& polygonPoints){
+    StwayXY point;
+    double min,tmp;
+    int nums;
+    min = DBL_MAX;
+    nums = polygonPoints.size();
+    for(int i = 0; i < polygonPoints.size(); i ++){
+        point = polygonPoints[i];
+        #ifdef DEBUG
+            printf(" getMinPoiintToSegDist min %f %f\n",point.x,point.y);
+        #endif
 
+        for(int j = (i + 1)%nums; j != (i - 1 + nums)%nums; j = (j+1)%nums){
+            tmp = pointToSegDist(point,polygonPoints[j],polygonPoints[(j+1)%nums]);
+            if(min > tmp)
+                min = tmp;
+            #ifdef DEBUG
+            printf(" 1111111111111111111 \n");
+            #endif
+        }
+
+        // for(int j = i + 1; j < polygonPoints.size() - 1; j ++){
+        //     tmp = pointToSegDist(point,polygonPoints[j],polygonPoints[j+1]);
+        //     if(min > tmp)
+        //         min = tmp;
+        //     #ifdef DEBUG
+        //     printf(" 1111111111111111111 \n");
+        //     #endif
+        // }
+        // if(i != polygonPoints.size() - 1 && i != 0){
+        //     tmp = pointToSegDist(point,polygonPoints[polygonPoints.size()-1],polygonPoints[0]);
+        //     if(min > tmp)
+        //         min = tmp;
+        //     #ifdef DEBUG
+        //     printf(" 222222222222222222 \n");
+        //     #endif
+        // }
+        
+        // for(int j = i - 1; j > 0; j --){
+        //     tmp = pointToSegDist(point,polygonPoints[j],polygonPoints[j-1]);
+        //     if(min > tmp)
+        //         min = tmp;
+        //     #ifdef DEBUG
+        //     printf(" 33333333333333333333 %d\n",i);
+        //     #endif
+        // }
+        #ifdef DEBUG
+        printf(" getMinPoiintToSegDist min %f\n",min);
+        #endif
+    }
+    return min;
+}
+
+double pointToSegDist(wayPointXy s, wayPointXy x1, wayPointXy x2){
+    double res,k,b;
+    // double cross = (x2.x - x1.x) * (s.x - x1.x) + (x2.y - x1.y) * (s.y - x1.y);
+    // if (cross <= 0) {    
+    //     res = sqrt((int)(s.x - x1.x) * (int)(s.x - x1.x) + (int)(s.y - x1.y) * (int)(s.y - x1.y));
+    //      #ifdef DEBUG
+    //         printf(" pointToSegDist min11 %f %f %f %f %f %f %d %f\n",cross,res,x1.x,x1.y,x2.x,x2.y,(int)(s.x - x1.x) * (int)(s.x - x1.x),sqrt((int)(s.y - x1.y) * (int)(s.y - x1.y)));
+    //     #endif 
+    //     return res;
+    // }
+    // double d2 = (x2.x - x1.x) * (x2.x - x1.x) + (x2.y - x1.y) * (x2.y - x1.y);
+    // if (cross >= d2){
+        
+    //     res = sqrt((int)(s.x - x2.x) * (int)(s.x - x2.x) + (int)(s.y - x2.y) * (int)(s.y - x2.y));
+    //     #ifdef DEBUG
+    //         printf(" pointToSegDist min22 %f %f %f %f %f %f\n",cross,res,x1.x,x1.y,x2.x,x2.y);
+    //     #endif
+    //     return res;
+    // } 
+     
+    // double r = cross / d2;
+    // double px = x1.x + (x2.x - x1.x) * r;
+    // double py = x1.y + (x2.y - x1.y) * r;
+    // res = sqrt((int)(s.x - px) * (int)(s.x - px) + (int)(py - x1.y) * (int)(py - x1.y));
+    // #ifdef DEBUG
+    //     printf(" pointToSegDist min33 %f %f %f %f %f %f %f %f %f \n",cross,res,x1.x,x1.y,x2.x,x2.y,r,px,py);
+    // #endif
+
+    if((int)x1.x == (int)x2.x && (int)x2.x == (int)s.x)
+        res = DBL_MAX;
+    else if((int)x1.y == (int)x2.y && (int)x2.y == (int)s.y)
+        res = DBL_MAX;
+    else if((int)x1.x == (int)x2.x)
+        res = fabs(x1.x - s.x);
+    else if((int)x1.y == (int)x2.y)
+        res = fabs(x1.y - s.y);
+    else{
+        k = (x2.y-x1.y)/(x2.x-x1.x);
+        res = fabs(k*s.x+s.y+k*x1.x-x1.y)/sqrt(1+k*k);
+        #ifdef DEBUG
+            printf(" pointToSegDist min22 %f \n",k);
+        #endif
+    }
+
+    #ifdef DEBUG
+        printf(" pointToSegDist min33 %f \n",res);
+    #endif
+
+    return res;
+}
+
+wayPointXy addWayPointXy(wayPointXy a, wayPointXy b)
+{
+    wayPointXy p;
+    p.x=a.x+b.x;
+    p.y=a.y+b.y;
+    return p;
+}
+wayPointXy minusWayPointXy(wayPointXy a, wayPointXy b)
+{
+    wayPointXy p;
+    p.x=a.x-b.x;
+    p.y=a.y-b.y;
+    return p;
+}
+double multyWayPointXy(wayPointXy a, wayPointXy b)
+{
+    double p=a.x*b.x+a.y*b.y;
+    return p;
+}
+wayPointXy multyWayPointXy(wayPointXy a, double value)
+{
+    wayPointXy p;
+    p.x=a.x*value;
+    p.y=a.y*value;
+    return p;
+}
+double xlJi(wayPointXy a, wayPointXy b)
+{
+    double p=((a.x)*(b.y))-((a.y)*(b.x));
+    // if(fabs(p) < 0.5)
+    //     p = -0.9;
+    return p;
+}
+
+bool zoomPolygonGrid(const vector<StwayXY>& polygonPoints,  vector<vector<StwayXY> >& transectSegments, bool refly){
+    vector<StwayXY> polygonPoints_tmp = polygonPoints;
+    vector<StwayXY> polygonPoints_res;
+    double          gridSpacing = _gridSpacing;
+    double          maxGridSpacing;
+    double          maxGridSpacing_tmp = getMinPoiintToSegDist(polygonPoints);
+
+    #ifdef DEBUG
+    for (int i=0; i<polygonPoints.size(); i++) {
+        printf("zoomPolygonGrid maxGridSpacing  %f\n", maxGridSpacing_tmp);
+    }
+    #endif
+
+    if(maxGridSpacing_tmp == DBL_MAX)
+        return false;
+    else
+        maxGridSpacing = maxGridSpacing_tmp;
+    transectSegments.push_back(polygonPoints_tmp);
+    for(; gridSpacing < maxGridSpacing; gridSpacing += _gridSpacing){
+        polygonPoints_res = zoomPolygon(polygonPoints_tmp,_gridSpacing);
+        polygonPoints_tmp = polygonPoints_res;
+        transectSegments.push_back(polygonPoints_res);
+    }
+    return true;
+}
+
+std::vector<StwayXY> zoomPolygon(std::vector<StwayXY> polygonPoints, double gridSpacing){
+     std::vector<StwayXY> pList;
+     std::vector<StwayXY> DpList;
+     std::vector<StwayXY> nDpList;
+     std::vector<StwayXY> newList;
+     StwayXY  p2d,p2,p2_tmp;
+     pList = polygonPoints;
+
+    #ifdef DEBUG
+    for (int i=0; i<polygonPoints.size(); i++) {
+        printf("zoomPolygon convexPolygon vertex:x:y1111111111 %f %f\n", polygonPoints[i].x,polygonPoints[i].y);
+    }
+    #endif
+     
+     
+    //-------------------------------------------
+     int i,index,count;
+     count=pList.size();
+     for(i=0;i<count;i++)
+     {
+          index=(i+1)%count;
+          p2d=minusWayPointXy(pList[index],pList[i]);
+          DpList.push_back(p2d);
+     }
+
+     #ifdef DEBUG
+    for (int i=0; i<polygonPoints.size(); i++) {
+        printf("zoomPolygon convexPolygon vertex:x:y222222222222 %f %f\n", DpList[i].x,DpList[i].y);
+    }
+    #endif
+
+     double r;
+     for(i=0;i<count;i++)
+     {
+          r=sqrt(multyWayPointXy(DpList[i],DpList[i]));
+          r=1/r;
+          p2d=multyWayPointXy(DpList[i],r);
+          nDpList.push_back(p2d);
+     }
+     
+     double lenth;
+     double dist=gridSpacing;
+     int startindex,endindex;
+     #ifdef DEBUG
+    for (int i=0; i<polygonPoints.size(); i++) {
+        printf("zoomPolygon convexPolygon vertex:x:y222222222222 %f %f\n", nDpList[i].x,nDpList[i].y);
+    }
+    #endif
+    for(i=0;i<count;i++)
+    {
+      startindex= i==0?count-1:i-1;
+      endindex=i;
+      double sina=xlJi(nDpList[startindex],nDpList[endindex]);
+      lenth=dist/sina;
+      p2d=minusWayPointXy(nDpList[endindex],nDpList[startindex]);
+      p2_tmp = multyWayPointXy(p2d,lenth);
+      p2 = addWayPointXy(pList[i],p2_tmp);
+      newList.push_back(p2);
+      cout << "zoomPolygon nDpList " << nDpList[startindex].x << "  " << nDpList[startindex].y << " " <<  nDpList[endindex].x << " " << nDpList[endindex].y << dist<< endl;
+      cout << "zoomPolygon " << p2.x << "  " << p2.y << " " <<  lenth << " " << sina <<  " " << dist<< endl;
+    }
+    #ifdef DEBUG
+    for (int i=0; i<newList.size(); i++) {
+        printf("zoomPolygon convexPolygon vertex:x:y333333333333333 %f %f\n", newList[i].x,newList[i].y);
+    }
+    #endif
+    //     // Make sure all lines are going to same direction. Polygon intersection leads to line which
+//     // can be in varied directions depending on the order of the intesecting sides.
+//     vector<LineXY> resultLines;
+//     adjustLineDirection(intersectLines, resultLines);
+// #ifdef DEBUG
+// printf(" Calc camera shots %d\n",(int)intersectLines.size());
+// #endif
+//     // Calc camera shots here if there are no images in turnaround
+//     if (_gridTriggerCamera) {
+//         for (int i=0; i<resultLines.size(); i++) {
+//             cameraShots += (int)floor(lineLenth(resultLines[i]) / _gridTriggerCameraDist);
+//             // Take into account immediate camera trigger at waypoint entry
+//             printf("cameraShots %d\n",(int)floor(lineLenth(resultLines[i]) / _gridTriggerCameraDist));
+//             cameraShots++;
+//         }
+//     }
+// #ifdef DEBUG
+// printf(" Turn into a path \n");
+// #endif
+//     // Turn into a path
+//     for (int i=0; i<resultLines.size(); i++) {
+//         LineXY           transectLine;
+//         vector<StwayXY>  transectPoints;
+//         const LineXY&    line = resultLines[i];
+// #ifdef DEBUG
+// printf(" Polygon entry point 1\n");
+// #endif
+//         float turnaroundPosition = _turnaroundDist / lineLenth(line);
+
+//         if (i & 1) {
+//             // transectLine = QLineF(line.p2(), line.p1());
+//             transectLine.start = line.stop;
+//             transectLine.stop = line.start;
+//         } else {
+//             transectLine.start = line.start;
+//             transectLine.stop = line.stop;
+//             // transectLine = QLineF(line.p1(), line.p2());
+//         }
+
+//         // Build the points along the transect
+// // #ifdef DEBUG
+// // printf(" Polygon entry point 1\n");
+// // #endif
+//         if (_turnaroundDist > 0 ) {
+//             // transectPoints.append(transectLine.pointAt(-turnaroundPosition));
+//             transectPoints.push_back(pointAt(transectLine, -turnaroundPosition));
+//         }
+
+//         // Polygon entry point
+//         transectPoints.push_back(transectLine.start);
+// // #ifdef DEBUG
+// // printf(" Polygon entry point 2\n");
+// // #endif
+//         // For hover and capture we need points for each camera location
+//         // _hoverAndCaptureEnabled = true;
+//         if (_gridTriggerCamera && _hoverAndCaptureEnabled) {
+//             if (_gridTriggerCameraDist < lineLenth(transectLine)) {
+//                 int innerPoints = floor(lineLenth(transectLine) / _gridTriggerCameraDist);
+//                 // qCDebug(SurveyMissionItemLog) << "innerPoints" << innerPoints;
+//                 float transectPositionIncrement = _gridTriggerCameraDist / lineLenth(transectLine);
+//                 for (int i=0; i<innerPoints; i++) {
+//                     transectPoints.push_back(pointAt(transectLine,transectPositionIncrement * (i + 1)));
+//                 }
+//             }
+//         }
+// // #ifdef DEBUG
+// // printf(" Polygon exit point \n");
+// // #endif
+//         // Polygon exit point
+//         transectPoints.push_back(transectLine.stop);
+
+//         if (_turnaroundDist > 0 ) {
+//             transectPoints.push_back(pointAt(transectLine,1 + turnaroundPosition));
+//         }
+
+//         transectSegments.push_back(transectPoints);
+//     }
+
+//     return cameraShots;
+    return newList;
+}
+
+void transformQuadrantPlus(StwayXY &degree_res){
+    if(degree_res.x >= 0 && degree_res.y >= 0){
+        if(degree_res.x > degree_res.y){
+            swap(degree_res.x,degree_res.y);
+        }                
+    }else if(degree_res.x <= 0 && degree_res.y <= 0){
+        degree_res.x = 180 + degree_res.x;
+        degree_res.y = 180 + degree_res.y;
+        if(degree_res.x > degree_res.y){
+            swap(degree_res.x,degree_res.y);
+        }  
+    }else{
+        if(fabs(degree_res.x - degree_res.y) <= 180){
+            if(degree_res.x > degree_res.y){
+                swap(degree_res.x,degree_res.y);
+            }
+            // #ifdef DEBUG
+            // printf(" degree_res x:y 4 %f %f \n",degree_res.x,degree_res.y);
+            // #endif
+        }else{
+            if(degree_res.x > degree_res.y){
+                degree_res.x = degree_res.x - 180;
+                degree_res.y = 180 + degree_res.y;
+                // #ifdef DEBUG
+                // printf(" degree_res x:y 5 %f %f \n",degree_res.x,degree_res.y);
+                // #endif
+            }else{
+                degree_res.x = 180 + degree_res.x;
+                degree_res.y = degree_res.y - 180;
+                swap(degree_res.x,degree_res.y);
+                // #ifdef DEBUG
+                // printf(" degree_res x:y 6 %f %f \n",degree_res.x,degree_res.y);
+                // #endif
+            }
+
+        }
+    }
+}
+
+double transformQuadrant(double angle){
+    double res = 0;
+    if(angle >= 0 && angle < 90){
+        res = 90 - angle;
+    }else if(angle >= 90 && angle <= 180){
+        res = -(angle - 90);
+    }else if(angle >= -90 && angle < 0){
+        res = 90 - angle;
+    }else if(angle >= -180 && angle < -90){
+        res = -(angle + 270);
+    }
+    #ifdef DEBUG
+    printf(" angle_res x:y %f %f \n",angle,res);
+    #endif
+    return res;
+}
+
+double getSlope(StwayXY p1, StwayXY p2){
+    if(p1.x == p2.x)
+        return 0;
+    else if(p1.y == p2.y)
+        return 90;
+    else
+        return atan2((p2.y - p1.y),(p2.x - p1.x))*M_RAD_TO_DEG;
+}
+
+bool getOkDegree(vector<StwayXY> polygonPoints, vector<int> polygonConcavePointsSer){
+    StwayXY polygonConcavePoints;
+    StwayXY polygonConcavePointsPre;
+    StwayXY polygonConcavePointsNext;
+    StwayXY degree_tmp;
+    StwayXY degree_res;
+
+    // double  degreeTmp;
+    for(int i = 0; i < polygonConcavePointsSer.size(); i ++){
+        polygonConcavePoints = polygonPoints[polygonConcavePointsSer[i]];
+        if(polygonConcavePointsSer[i] > 0)
+            polygonConcavePointsPre = polygonPoints[polygonConcavePointsSer[i] - 1];
+        else
+            polygonConcavePointsPre = polygonPoints[polygonPoints.size() - 1];
+
+        if(polygonConcavePointsSer[i] < polygonPoints.size() - 1)
+            polygonConcavePointsNext = polygonPoints[polygonConcavePointsSer[i] + 1];
+        else
+            polygonConcavePointsNext = polygonPoints[0];
+
+        if(i == 0){
+            degree_res.x = transformQuadrant(getSlope(polygonConcavePoints,polygonConcavePointsPre));
+            degree_res.y = transformQuadrant(getSlope(polygonConcavePoints,polygonConcavePointsNext));
+            transformQuadrantPlus(degree_res);   
+            #ifdef DEBUG
+            printf(" degree_res x:y 0 %f %f \n",degree_res.x,degree_res.y);
+            #endif      
+        }else{
+            degree_tmp.x = transformQuadrant(getSlope(polygonConcavePoints,polygonConcavePointsPre));
+            degree_tmp.y = transformQuadrant(getSlope(polygonConcavePoints,polygonConcavePointsNext)); 
+            #ifdef DEBUG
+            printf(" degree_res x:y 3 %f %f \n",degree_tmp.x,degree_tmp.y);
+            #endif
+            transformQuadrantPlus(degree_tmp);
+            #ifdef DEBUG
+            printf(" degree_res x:y 1 %f %f \n",degree_tmp.x,degree_tmp.y);
+            #endif
+
+            if(degree_res.x > degree_tmp.y){
+                _okDegree.x = 10;
+                _okDegree.y = 0;
+                return false;
+            }else if(degree_res.y < degree_tmp.x){
+                _okDegree.x = 10;
+                _okDegree.y = 0;
+                return false;
+            }
+
+            if(degree_tmp.x > degree_res.x){
+                degree_res.x = degree_tmp.x;
+            }
+            if(degree_tmp.y < degree_res.y){
+                degree_res.y = degree_tmp.y;
+            }
+            #ifdef DEBUG
+            printf(" degree_res x:y ok %f %f \n",degree_res.x,degree_res.y);
+            #endif
+        }
+
+        
+    }
+    // _okDegree.x = degree_res.x;
+    // _okDegree.y = degree_res.y;
+    _okDegree = degree_res;
+    
+    #ifdef DEBUG
+    printf(" degree_res x:y %f %f \n",degree_res.x,degree_res.y);
+    #endif
+    return true;
+}
 // //向量（x1,y1）,(x2,y2)的叉积
 // double CrossMul(StwayXY x1,StwayXY x2)
 // {
@@ -651,9 +1147,15 @@ void swap(StwayXY& a,StwayXY& b)
     b=a;
     a=temp;
 }
+void swap(double &a,double& b)
+{
+    double temp = b;
+    b=a;
+    a=temp;
+}
 //以s中的最低点为参考点，对其他所有点进行极角排序（逆时针）
 //共线时离参考点较远的点排在前面，凸包的起始边共线点从近到远排列
-void sortpoint(std::vector<StwayXY> s)
+void sortpoint(std::vector<StwayXY> &s)
 {
     //找最低点
     for(int i=1;i<s.size();i++)
@@ -684,7 +1186,7 @@ void sortpoint(std::vector<StwayXY> s)
     #endif
     // return;
 }
-void sortstartedge(std::vector<StwayXY> s)
+void sortstartedge(std::vector<StwayXY> &s)
 {
     int i,j;
     for(i=2;i<s.size();i++)
@@ -697,7 +1199,7 @@ void sortstartedge(std::vector<StwayXY> s)
 }
 
 //将点按极角逆时针排序
-void qsortpoint(std::vector<StwayXY> s,int start,int end)
+void qsortpoint(std::vector<StwayXY> &s,int start,int end)
 {
     if(start>=end)
         return;
@@ -727,8 +1229,10 @@ std::vector<StwayXY> ConvexHull(vector<StwayXY>  s)
     #endif
     int top=2;
     int i;
-    for(i=0;i<2;i++)
+    for(i=0;i<s.size();i++){
         result.push_back(s[i]);
+    }
+    i = 2;
     while(i<s.size())
     {
         //用<号判断则包含凸包边上的共线点，<=号判断则只包含凸包顶点
@@ -745,22 +1249,44 @@ std::vector<StwayXY> ConvexHull(vector<StwayXY>  s)
              #ifdef DEBUG
             printf("CrossMul222222 %d %f %f %f %f %f %f\n",top,result[top-2].x,result[top-2].y,result[top-1].x,result[top-1].y,s[i].x,s[i].y);
             #endif
-            result.push_back(s[i++]);
-            top ++;
+            // result.push_back(s[i++]);
+            // top ++;
+            // _polygonPoints.push_back(s[top]);
+            result[top++]=s[i++];
         }
     }
     #ifdef DEBUG
     printf("top1 %d\n",top);
     #endif
+    #ifdef DEBUG
+        for(int j=0;j<result.size();j++)
+        {
+            printf(" result %f %f\n",result[j].x,result[j].y);
+        }
+    #endif
     //最后加入起点形成闭包
-    while(top > 2 && CrossMul(result[top-2],result[top-1],s[0])<=0 )
+    while(top >= 2 && CrossMul(result[top-2],result[top-1],s[0])<=0 )
     {
         top--;
+        // _polygonPoints.push_back(result[top]);
     }
     #ifdef DEBUG
-    printf("top2 %d\n",top);
-    #endif
+    printf("top2 %d %d\n",top,(int)result.size());
+    #endif  
+    // #ifdef DEBUG
+    //     for(int j=0;j<_polygonPoints.size();j++)
+    //     {
+    //         printf(" _polygonPoints %f %f\n",_polygonPoints[j].x,_polygonPoints[j].y);
+    //     }
+    // #endif  
     vector<StwayXY> res(result.begin(),result.begin()+top);
+    // _polygonConcavePoints = res;
+    // #ifdef DEBUG
+    //     for(int j=0;j<_polygonConcavePoints.size();j++)
+    //     {
+    //         printf(" _polygonConcavePoints %f %f\n",_polygonConcavePoints[j].x,_polygonConcavePoints[j].y);
+    //     }
+    // #endif  
     return res;
 }
 
@@ -873,32 +1399,36 @@ StwayXY getCross(LineXY line1, LineXY line2)
 
     double a1,b1,a2,b2;
     if((int)line1.start.x == (int)line1.stop.x){
-        a1 = 3;
+        a1 = 60;
         b1 = line1.start.x;
     }else if((int)line1.start.y == (int)line1.stop.y){
         a1 = 0;
         b1 = line1.start.y;
     }else{
         a1 = (line1.start.y - line1.stop.y) / (line1.start.x - line1.stop.x);
-        if(abs(int(a1)) > 2)
-            a1 = 3;
+        if(abs(int(a1)) > 59)
+            a1 = 60;
         b1 = line1.start.y - a1 * (line1.start.x);
     }
 
     if((int)line2.start.x == (int)line2.stop.x){
-        a2 = 3;
+        a2 = 60;
         b2 = line2.start.x;
     }else if((int)line2.start.y == (int)line2.stop.y){
         a2 = 0;
         b2 = line2.start.y;
     }else{
         a2 = (line2.start.y - line2.stop.y) / (line2.start.x - line2.stop.x);
-        if(abs(int(a2)) > 2)
-            a1 = 3;
+        if(abs(int(a2)) > 59)
+            a2 = 60;
         b2 = line2.start.y - a2 * (line2.start.x);
     }
-
-    if((int)a2 == (int)a1){
+    #ifdef DEBUG
+        printf("slop %f %f\n",a1,a2);
+        // if(CrossP.x != DBL_MAX)
+        // printf(" getCross444 %d %f %d\n ",abs(a1),fabs(a1),abs(a2));
+    #endif
+    if(fabs(a2 - a1) < 1e-6){
         CrossP.x = DBL_MAX;
         CrossP.y = DBL_MAX;
         #ifdef DEBUG
@@ -906,7 +1436,7 @@ StwayXY getCross(LineXY line1, LineXY line2)
             // if(CrossP.x != DBL_MAX)
             // printf(" getCross444 %d %f %d\n ",abs(a1),fabs(a1),abs(a2));
         #endif
-        if(int(a1) == 3 && int(a2) == 3 ){
+        if(abs(int(a1)) == 60 && abs(int(a2)) == 60 ){
             CrossP.x = DBL_MAX;
             CrossP.y = DBL_MAX;
             #ifdef DEBUG
@@ -917,21 +1447,36 @@ StwayXY getCross(LineXY line1, LineXY line2)
         }
         
     }else{
-        if((abs(int(a2)) == 3 && abs(int(a1)) == 0)){
+        if((abs(int(a2)) == 60 && abs(a1) == 0)){
             CrossP.x = b2;
             CrossP.y = b1;
-        }else if((abs(int(a1)) == 3 && abs(int(a2)) == 0)){
+            #ifdef DEBUG
+                printf(" 333333333333333 %d %f\n",abs(int(a2)),abs(a1));
+            #endif
+        }else if((abs(int(a1)) == 60 && abs(a2) == 0)){
             CrossP.x = b1;
             CrossP.y = b2;
-        }else if(abs(int(a1)) == 3){
+            #ifdef DEBUG
+                printf(" 44444444444444444\n");
+            #endif
+        }else if(abs(int(a1)) == 60){
             CrossP.x = b1;
             CrossP.y = a1 * CrossP.x + b1;
-        }else if(abs(int(a2)) == 3){
+            #ifdef DEBUG
+                printf(" 555555555555555555\n");
+            #endif
+        }else if(abs(int(a2)) == 60){
             CrossP.x = b2;
             CrossP.y = a1 * CrossP.x + b1;
+            #ifdef DEBUG
+                printf(" 6666666666666666\n");
+            #endif
         }else{
             CrossP.x = (b1 - b2) / (a2 - a1);
             CrossP.y = a1 * CrossP.x + b1;
+            #ifdef DEBUG
+                printf(" 7777777777777777777\n");
+            #endif
         }
         
 

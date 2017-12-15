@@ -64,9 +64,15 @@ void sortpoint(Point s[],int nums)
         if(s[i].y<s[0].y || (s[i].y==s[0].y && s[i].x<s[0].x))
             swap(s[0],s[i]);
     }
+    for(int i=0;i<nums;i++)
+        cout<<"lowpoint "<<s[i].x <<"," <<s[i].y<<endl;
     qsortpoint(s,s[0],1,nums);
+    for(int i=0;i<nums;i++)
+        cout<<"qsortpoint "<<s[i].x <<"," <<s[i].y<<endl;
     //将起始边上的共线点重新排列
     sortstartedge(s,nums);
+    for(int i=0;i<nums;i++)
+        cout<<"sortstartedge "<<s[i].x <<"," <<s[i].y<<endl;
 }
 void sortstartedge(Point s[],int nums)
 {
@@ -132,6 +138,7 @@ void ConvexHull(Point s[],int nums,Point result[],int& resultnums)
     {
         top--;
     }
+    cout << top << endl;
     result[top++]=s[0];
     resultnums = top;
 }
@@ -154,7 +161,7 @@ void ConvexHull(Point s[],int nums,Point result[],int& resultnums)
 
 int main()
 {
-    Point pa[] = {{0,0},{425.682190,0.011948},{851.339411,222.437644},{425.657222,444.791654},{0.000000,444.779707},
+    Point pa[] = {{0,0},{425.682190,0.011948},{255.339411,222.437644},{425.657222,444.791654},{0.000000,444.779707},
                 {-851.339411,222.437644},{-425.669706,222.401801},{255.405569,111.199228}};
                 // ,{4,4.3},
                 // {10.10,4},{2,4},{1,4},{0,10.4},
