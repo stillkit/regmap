@@ -27,6 +27,8 @@ typedef unsigned char uint8_t;
 #define CONSTANTS_AIR_GAS_CONST				287.1f 			/* J/(kg * K)		*/
 #define CONSTANTS_ABSOLUTE_NULL_CELSIUS			-273.15f		/* °C			*/
 #define CONSTANTS_RADIUS_OF_EARTH			6371000			/* meters (m)		*/
+#define MIN_POINT_SEG_DIST         10
+#define MIN_POINT_POINT_DIST         10
 
 #define DEBUG
 
@@ -86,6 +88,7 @@ vector<vector<StwayGPS> >    	_reflyTransectSegments; ///< Refly segments
 StwayGPS                  		_coordinate;
 StwayGPS                  		_exitCoordinate;
 double                        _additionalFlightDelaySeconds;
+
 // std::vector<int>              _polygonConcavePointsSer;
 StwayXY         _okDegree;
 // std::vector<StwayXY>          _polygonConcavePoints;
@@ -111,7 +114,8 @@ StwayXY center(RectXY smallBoundRect);
 StwayXY rotatePoint(const StwayXY& point, const StwayXY& origin, double angle);
 bool gridAngleIsNorthSouthTransects();
 LineXY getLine(double x1, double y1, double x2, double y2, const StwayXY& origin, double angle);
-StwayXY getCross(LineXY line1, LineXY line2);
+// StwayXY getCross(LineXY line1, LineXY line2);
+bool getCross(LineXY line1, LineXY line2 ,StwayXY &CrossP);
 void intersectLinesWithPolygon(const vector<LineXY>& lineList, const vector<StwayXY>& polygon, vector<LineXY>& resultLines);
 StwayXY pointAt(LineXY line, double proportion);
 LineXY getTranslate(LineXY line, StwayXY center);
@@ -147,10 +151,21 @@ wayPointXy minusWayPointXy(wayPointXy a, wayPointXy b);
 double multyWayPointXy(wayPointXy a, wayPointXy b);
 wayPointXy multyWayPointXy(wayPointXy a, double value);
 double xlJi(wayPointXy a, wayPointXy b);
-bool zoomPolygonGrid(const vector<StwayXY>& polygonPoints,  vector<vector<StwayXY> >& transectSegments, bool refly);
-std::vector<StwayXY> zoomPolygon(std::vector<StwayXY> polygonPoints, double gridSpacing);
+int zoomPolygonGrid(const vector<StwayXY>& polygonPoints,  vector<vector<StwayXY> >& transectSegments, bool refly);
+// std::vector<StwayXY> zoomPolygon(std::vector<StwayXY> polygonPoints, double gridSpacing);
+std::vector<StwayXY> zoomPolygon(std::vector<StwayXY> polygonPoints, double gridSpacing, vector<int> relativePosition, vector<int> &relativePositionInner);
 double pointToSegDist(wayPointXy s, wayPointXy x1, wayPointXy x2);
 double getMinPoiintToSegDist(const vector<StwayXY>& polygonPoints);
 bool isCanGenerateGrid(std::vector<StwayXY> polygonPoints);
+// bool isCloseToPointAndSeg(const vector<StwayXY>& polygonPoints, int i);
+bool isCloseToPointAndSeg(const vector<StwayXY>& polygonPoints, int i, StwayXY point);
+double lineLenth(StwayXY startPoint, StwayXY endPoint);
+bool isOkRelativePosition(StwayXY p1, StwayXY p2,int compId);
+int getRelativePosition(StwayXY p1, StwayXY p2);
+bool isPolygonCross(const vector<StwayXY>& polygonPointsStart, const vector<StwayXY>& polygonPointsEnd);
+int getTriggercameraShots(const vector<StwayXY>& intersectLines,  vector<vector<StwayXY> >& transectSegments);
+std::vector<StwayXY> unitizedVector(std::vector<StwayXY> polygonPoints);
+bool getConcavePoint(std::vector<StwayXY> polygonPoints,vector<int> &polygonConcavePointsSer);
+// bool isOkRelativePosition(StwayXY p1, StwayXY p2,StwayXY p3,int compIdP1P2,int compIdP2P3);
 
 #endif 

@@ -151,17 +151,15 @@ void generateGrid(void)
 
     // std::vector<StwayXY> polygonPoints = ConvexHull(polygonPoints_tmp);//convexPolygon(polygonPoints_tmp);ConvexHull
     std::vector<StwayXY> polygonPoints =polygonPoints_tmp;
-
-    // vector<StwayXY>::iterator it;  
+    vector<StwayXY>::iterator it;  
     std::vector<int>  polygonConcavePointsSer;
-    getConcavePoint(polygonPoints_tmp,polygonConcavePointsSer);
-    // for(int i = 0; i < polygonPoints_tmp.size(); i ++){
-    //     it=find(polygonPoints.begin(),polygonPoints.end(),polygonPoints_tmp[i]);   
-    //     if(it == polygonPoints.end())
-    //     {
-    //         polygonConcavePointsSer.push_back(i);
-    //     }
-    // }
+    for(int i = 0; i < polygonPoints_tmp.size(); i ++){
+        it=find(polygonPoints.begin(),polygonPoints.end(),polygonPoints_tmp[i]);   
+        if(it == polygonPoints.end())
+        {
+            polygonConcavePointsSer.push_back(i);
+        }
+    }
     #ifdef DEBUG
     for (int i=0; i<polygonConcavePointsSer.size(); i++) {
         printf("_polygonConcavePointsSer %d\n", polygonConcavePointsSer[i]);
@@ -178,7 +176,7 @@ void generateGrid(void)
             _gridAngle_tmp = _gridAngle;
         if(_gridAngle_tmp < _okDegree.x || _gridAngle_tmp > _okDegree.y){
             _gridAngle = _okDegree.x;
-            // polygonPoints = polygonPoints_tmp;
+            polygonPoints = polygonPoints_tmp;
             // polygonPoints = zoomPolygon(polygonPoints_tmp);
         }
     }else{
@@ -1114,26 +1112,9 @@ std::vector<StwayXY> unitizedVector(std::vector<StwayXY> polygonPoints){
     return nDpList;
 }
 
-bool getConcavePoint(std::vector<StwayXY> polygonPoints,vector<int> &polygonConcavePointsSer){
-    std::vector<StwayXY> nDpList;
-    int startindex,endindex,count = polygonPoints.size();
-    double sina;
+// int getConcavePoint(std::vector<StwayXY> polygonPoints){
 
-    nDpList = unitizedVector(polygonPoints);
-
-    for(int i=0;i<count;i++)
-    {
-      startindex= i==0?count-1:i-1;
-      endindex=i;
-      sina=xlJi(nDpList[startindex],nDpList[endindex]);
-      if(sina < 0)
-        polygonConcavePointsSer.push_back(i);
-    }
-    if(polygonConcavePointsSer.size() > 0)
-        return true;
-    else
-        return false;
-}
+// }
 
 std::vector<StwayXY> zoomPolygon(std::vector<StwayXY> polygonPoints, double gridSpacing, vector<int> relativePosition, vector<int> &relativePositionInner){
     std::vector<StwayXY> nDpList;
@@ -1147,7 +1128,7 @@ std::vector<StwayXY> zoomPolygon(std::vector<StwayXY> polygonPoints, double grid
     preIsClose = false;
     count=pList.size();
 
-    nDpList = unitizedVector(pList);
+    nDpList = unitizedVector(nDpList);
 
     double lenth;
     double dist=gridSpacing;
@@ -1360,54 +1341,54 @@ bool getOkDegree(vector<StwayXY> polygonPoints, vector<int> polygonConcavePoints
     #endif
     return true;
 }
-// //向量（x1,y1）,(x2,y2)的叉积
+// //??(x1,y1),(x2,y2)???
 // double CrossMul(StwayXY x1,StwayXY x2)
 // {
 //     // return x1*y2-x2*y1;
 //     return x1.x*x2.y-x2.x*x1.y;
 // }
-// //向量（x1,y1）,(x2,y2)的点积
+// //??(x1,y1),(x2,y2)???
 // double DotMul(StwayXY x1,StwayXY x2)
 // {
 //     // return x1*x2+y1*y2;
 //     return x1.x*x2.x+x1.y*x2.y;
 // }
-//向量（x1,y1）,(x2,y2)的叉积
+//??(x1,y1),(x2,y2)???
 double CrossMul(double x1,double y1,double x2,double y2)
 {
     return x1*y2-x2*y1;
 }
-//向量（x1,y1）,(x2,y2)的点积
+//??(x1,y1),(x2,y2)???
 double DotMul(double x1,double y1,double x2,double y2)
 {
     return x1*x2+y1*y2;
 }
-//跨立判断
-//判断点c是在向量ab的逆时针方向还是顺时针方向，大于零逆时针，等于0则共线
+//????
+//???c????ab?????????????,??????,??0???
 double CrossMul(StwayXY a,StwayXY b,StwayXY c)
 {
     return CrossMul(b.x-a.x,b.y-a.y,c.x-a.x,c.y-a.y);
 }
-//计算向量ab和ac点积
+//????ab?ac??
 double DotMul(StwayXY a,StwayXY b,StwayXY c)
 {
     return DotMul(b.x-a.x,b.y-a.y,c.x-a.x,c.y-a.y);
 }
-//判断浮点数符号
+//???????
 int doublecmp(double d)
 {
     if(fabs(d)<10e-6)
         return 0;
     return d>0?1:-1;
 }
-//判断同一直线上的三个点位置，点c是否在点ab之间
+//?????????????,?c????ab??
 bool betweenCmp(StwayXY a,StwayXY b,StwayXY c)
 {
     if(doublecmp(DotMul(c,a,b))<=0)
         return true;
     return false;
 }
-//判断j是否在base->i向量的左边或当共线时j是否位于它们的线段之间
+//??j???base->i??????????j???????????
 bool isLeftorNearer(StwayXY base,StwayXY i,StwayXY j)
 {
     if(CrossMul(base,i,j)>0)
@@ -1428,11 +1409,11 @@ void swap(double &a,double& b)
     b=a;
     a=temp;
 }
-//以s中的最低点为参考点，对其他所有点进行极角排序（逆时针）
-//共线时离参考点较远的点排在前面，凸包的起始边共线点从近到远排列
+//?s?????????,????????????(???)
+//???????????????,???????????????
 void sortpoint(std::vector<StwayXY> &s)
 {
-    //找最低点
+    //????
     for(int i=1;i<s.size();i++)
     {
         if(s[i].y<s[0].y || (s[i].y==s[0].y && s[i].x<s[0].x))
@@ -1451,7 +1432,7 @@ void sortpoint(std::vector<StwayXY> &s)
             printf(" qsortpoint %f %f\n",s[i].x,s[i].y);
         }
     #endif
-    // 将起始边上的共线点重新排列
+    // ?????????????
     sortstartedge(s);
     #ifdef DEBUG
         for(int i=0;i<s.size();i++)
@@ -1473,7 +1454,7 @@ void sortstartedge(std::vector<StwayXY> &s)
         swap(s[j],s[i-j]);
 }
 
-//将点按极角逆时针排序
+//??????????
 void qsortpoint(std::vector<StwayXY> &s,int start,int end)
 {
     if(start>=end)
@@ -1510,7 +1491,7 @@ std::vector<StwayXY> ConvexHull(vector<StwayXY>  s)
     i = 2;
     while(i<s.size())
     {
-        //用<号判断则包含凸包边上的共线点，<=号判断则只包含凸包顶点
+        //?<??????????????,<=???????????
         if(top >= 2 && CrossMul(result[top-2],result[top-1],s[i])<=0)
         {
             
@@ -1539,7 +1520,7 @@ std::vector<StwayXY> ConvexHull(vector<StwayXY>  s)
             printf(" result %f %f\n",result[j].x,result[j].y);
         }
     #endif
-    //最后加入起点形成闭包
+    //??????????
     while(top >= 2 && CrossMul(result[top-2],result[top-1],s[0])<=0 )
     {
         top--;
@@ -2024,5 +2005,6 @@ void convertNedToGeo(double x, double y, StwayGPS origin, StwayGPS *coord) {
     coord->lat = lat_rad * M_RAD_TO_DEG;
     coord->lon = lon_rad * M_RAD_TO_DEG;
 }
+
 
 

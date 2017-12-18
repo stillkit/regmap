@@ -10,8 +10,8 @@ extern std::vector<std::vector<struct wayPointGPS> > GenRegWaypoint(std::vector<
                     bool gridTriggerCamera, double gridTriggerCameraDist, double _turnaroundDist, uint8_t gridMode, uint8_t gridRefly);
 int main()   
 {  
-    StawayGPS ways[8];
-    std::vector<StawayGPS> way(ways,ways+8);
+    StawayGPS ways[7];
+    std::vector<StawayGPS> way(ways,ways+7);
     // int i;
     // for(i = 0; i < 4; i ++){
 
@@ -21,33 +21,33 @@ int main()
       way[1].lat = 40.0351124;
       way[1].lon = 116.3470277;
 
-      way[2].lat = 40.0351124;
-      way[2].lon = 116.3480277;
+      // way[2].lat = 40.0351124;
+      // way[2].lon = 116.3480277;
 
-      way[3].lat = 40.0371124;
-      way[3].lon = 116.3450277;
+      way[2].lat = 40.0371124;
+      way[2].lon = 116.3450277;
 
-      way[4].lat = 40.0391124;
-      way[4].lon = 116.3470277;
+      way[3].lat = 40.0391124;
+      way[3].lon = 116.3470277;
 
       // way[4].lat = 40.0381124;
       // way[4].lon = 116.3460277;
 
-      way[5].lat = 40.0391124;
-      way[5].lon = 116.3420277;
+      way[4].lat = 40.0391124;
+      way[4].lon = 116.3420277;
+
+      way[5].lat = 40.0371124;
+      way[5].lon = 116.3320277;
 
       way[6].lat = 40.0371124;
-      way[6].lon = 116.3320277;
-
-      way[7].lat = 40.0371124;
-      way[7].lon = 116.3370277;
+      way[6].lon = 116.3370277;
 
       // way[7].lat = 40.0361124;
       // way[7].lon = 116.3450277;
 
     // }
     int i;
-    for(i = 0; i < 8; i ++){
+    for(i = 0; i < 7; i ++){
         printf("%0.8f %0.8f \n",way[i].lat,way[i].lon);
     }
     
