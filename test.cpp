@@ -51,7 +51,7 @@ int main()
         printf("%0.8f %0.8f \n",way[i].lat,way[i].lon);
     }
     
-    std::vector<std::vector<StawayGPS> > result = GenRegWaypoint(way,20,true,1,110,true,10,10,1,false);
+    std::vector<std::vector<StawayGPS> > result = GenRegWaypoint(way,20,true,1,110,true,10,10,8,false);
     // for(i = 0; i < result.size(); i ++)
     //     for(int j = 0; j < result[i].size(); j ++)
     //         printf("%0.7f %0.7f\n",result[i][j].lat,result[i][j].lon);

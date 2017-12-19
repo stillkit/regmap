@@ -64,7 +64,7 @@ bool isCanGenerateGrid(std::vector<StwayXY> polygonPoints){
     for(int i = 0; i < polygonPoints.size()-2; i ++){
         lineStart.start = polygonPoints[i];
         lineStart.stop = polygonPoints[i+1];
-        for(int j = i + 2; j < polygonPoints.size(); j += 2){
+        for(int j = i + 2; j < polygonPoints.size(); j ++){
             if(i == 0 && j >= polygonPoints.size() - 1)
                 break;
 
@@ -121,7 +121,9 @@ void generateGrid(void)
     _additionalFlightDelaySeconds = 0;
 
     std::vector<StwayXY>           polygonPoints_tmp;
-    vector<vector<StwayXY> >   transectSegments;
+    vector<vector<StwayXY> >       transectSegments;
+    std::vector<StwayXY>           polygonPoints;
+    std::vector<int>               polygonConcavePointsSer;
 
     // Convert polygon to NED
     StwayGPS tangentOrigin = _gridPlygon[0];
@@ -150,41 +152,43 @@ void generateGrid(void)
     }
 
     // std::vector<StwayXY> polygonPoints = ConvexHull(polygonPoints_tmp);//convexPolygon(polygonPoints_tmp);ConvexHull
-    std::vector<StwayXY> polygonPoints =polygonPoints_tmp;
+    if(_gridMode == 0 || _gridMode == 6)
+        polygonPoints =polygonPoints_tmp;
+    else if(_gridMode == 1 || _gridMode == 7){
+        if(getConcavePoint(polygonPoints_tmp,polygonConcavePointsSer)){
+            
+            #ifdef DEBUG
+            for (int i=0; i<polygonConcavePointsSer.size(); i++) {
+                printf("_polygonConcavePointsSer %d\n", polygonConcavePointsSer[i]);
+            }
+            #endif
 
-    // vector<StwayXY>::iterator it;  
-    std::vector<int>  polygonConcavePointsSer;
-    getConcavePoint(polygonPoints_tmp,polygonConcavePointsSer);
-    // for(int i = 0; i < polygonPoints_tmp.size(); i ++){
-    //     it=find(polygonPoints.begin(),polygonPoints.end(),polygonPoints_tmp[i]);   
-    //     if(it == polygonPoints.end())
-    //     {
-    //         polygonConcavePointsSer.push_back(i);
-    //     }
-    // }
-    #ifdef DEBUG
-    for (int i=0; i<polygonConcavePointsSer.size(); i++) {
-        printf("_polygonConcavePointsSer %d\n", polygonConcavePointsSer[i]);
-    }
-    #endif
-
-    double _gridAngle_tmp;
-    _okDegree.x = -181;
-    _okDegree.y = 181;
-    if(getOkDegree(polygonPoints_tmp, polygonConcavePointsSer)){
-        if(_gridAngle < 0)
-            _gridAngle_tmp = 180 + _gridAngle;
-        else
-            _gridAngle_tmp = _gridAngle;
-        if(_gridAngle_tmp < _okDegree.x || _gridAngle_tmp > _okDegree.y){
-            _gridAngle = _okDegree.x;
-            // polygonPoints = polygonPoints_tmp;
-            // polygonPoints = zoomPolygon(polygonPoints_tmp);
+            double _gridAngle_tmp;
+            _okDegree.x = -181;
+            _okDegree.y = 181;
+            if(getOkDegree(polygonPoints_tmp, polygonConcavePointsSer)){
+                if(_gridAngle < 0)
+                    _gridAngle_tmp = 180 + _gridAngle;
+                else
+                    _gridAngle_tmp = _gridAngle;
+                if(_gridAngle_tmp < _okDegree.x || _gridAngle_tmp > _okDegree.y){
+                    _gridAngle = _okDegree.x;
+                    polygonPoints = polygonPoints_tmp;
+                    // polygonPoints = zoomPolygon(polygonPoints_tmp);
+                }
+            }
         }
-    }else{
-        // polygonPoints = zoomPolygon(polygonPoints_tmp);
+    }else if(_gridMode == 2 || _gridMode == 8){
+        polygonPoints = ConvexHull(polygonPoints_tmp);
+        // vector<StwayXY>::iterator it;  
+        // for(int i = 0; i < polygonPoints_tmp.size(); i ++){
+        //     it=find(polygonPoints.begin(),polygonPoints.end(),polygonPoints_tmp[i]);   
+        //     if(it == polygonPoints.end())
+        //     {
+        //         polygonConcavePointsSer.push_back(i);
+        //     }
+        // }
     }
-
     
     // std::vector<StwayXY> polygonPoints = polygonPoints_tmp;
     // vector<StwayXY> polygonPoints(convexPolygon(polygonPoints_tmp));
@@ -210,9 +214,9 @@ void generateGrid(void)
 
     // Generate grid
     int cameraShots = 0;
-    if(_gridMode == 0)
+    if(_gridMode == 0 || _gridMode == 1 || _gridMode == 2)
         cameraShots += gridGenerator(polygonPoints, transectSegments, false /* refly */);
-    else if(_gridMode == 1){
+    else if(_gridMode == 6 || _gridMode == 7 || _gridMode == 8){
         // if(!zoomPolygonGrid(polygonPoints, transectSegments, false /* refly */))
         //     return ;
         cameraShots += zoomPolygonGrid(polygonPoints, transectSegments, false /* refly */);
@@ -379,8 +383,8 @@ int gridGenerator(const vector<StwayXY>& polygonPoints,  vector<vector<StwayXY> 
             // qCDebug(SurveyMissionItemLog) << "Generate left to right";
             float x = largeBoundRect.x - (gridSpacing / 2);
             while (x < largeBoundRect.x + largeBoundRect.width) {
-                float yBottom =    largeBoundRect.y - 100.0;
-                float yTop = largeBoundRect.y + largeBoundRect.lenth + 100.0;
+                float yBottom =    largeBoundRect.y - 1000.0;
+                float yTop = largeBoundRect.y + largeBoundRect.lenth + 1000.0;
 
                 LineXY lineList_temp = getLine(x, yTop, x, yBottom, boundingCenter, gridAngle);
                 lineList.push_back(lineList_temp);
@@ -395,8 +399,8 @@ int gridGenerator(const vector<StwayXY>& polygonPoints,  vector<vector<StwayXY> 
             // qCDebug(SurveyMissionItemLog) << "Generate right to left";
             float x = largeBoundRect.x + largeBoundRect.width + (gridSpacing / 2);
             while (x > largeBoundRect.x) {
-                float yBottom =    largeBoundRect.y  - 100.0;
-                float yTop = largeBoundRect.y + largeBoundRect.lenth + 100.0;
+                float yBottom =    largeBoundRect.y  - 1000.0;
+                float yTop = largeBoundRect.y + largeBoundRect.lenth + 1000.0;
 
                 LineXY lineList_temp = getLine(x, yTop, x, yBottom, boundingCenter, gridAngle);
                 lineList.push_back(lineList_temp);
@@ -417,8 +421,8 @@ int gridGenerator(const vector<StwayXY>& polygonPoints,  vector<vector<StwayXY> 
             // qCDebug(SurveyMissionItemLog) << "Generate top to bottom";
             float y = largeBoundRect.y + largeBoundRect.lenth + (gridSpacing / 2);
             while (y > largeBoundRect.y) {
-                float xLeft =   largeBoundRect.x - 100.0;
-                float xRight =  largeBoundRect.x + largeBoundRect.width + 100.0;
+                float xLeft =   largeBoundRect.x - 1000.0;
+                float xRight =  largeBoundRect.x + largeBoundRect.width + 1000.0;
 
                 LineXY lineList_temp = getLine(xLeft, y, xRight, y, boundingCenter, gridAngle);
                 lineList.push_back(lineList_temp);
@@ -434,8 +438,8 @@ int gridGenerator(const vector<StwayXY>& polygonPoints,  vector<vector<StwayXY> 
             // qCDebug(SurveyMissionItemLog) << "Generate bottom to top";
             float y = largeBoundRect.y - (gridSpacing / 2);
             while (y < largeBoundRect.y+largeBoundRect.lenth) {
-                float xLeft =   largeBoundRect.x - 100.0;
-                float xRight =  largeBoundRect.x+largeBoundRect.width + 100.0;
+                float xLeft =   largeBoundRect.x - 1000.0;
+                float xRight =  largeBoundRect.x+largeBoundRect.width + 1000.0;
 
                 LineXY lineList_temp = getLine(xLeft, y, xRight, y, boundingCenter, gridAngle);
                 lineList.push_back(lineList_temp);
@@ -1666,6 +1670,35 @@ void intersectLinesWithPolygon(const vector<LineXY>& lineList, const vector<Stwa
         }
     }
 }
+
+// double determinant(double v1, double v2, double v3, double v4)  // 行列式  
+// {  
+//     return (v1*v3-v2*v4);  
+// }  
+  
+// // bool getCross(Point aa, Point bb, Point cc, Point dd)  
+
+// bool getCross(LineXY line1, LineXY line2 ,StwayXY &CrossP)  
+// {  
+//     double delta = determinant(line1.stop.x-line1.start.x, line2.start.x-line2.stop.x, line1.stop.y-line1.start.y, line2.start.y-line2.stop.y);  
+//     if ( delta<=(1e-6) && delta>=-(1e-6) )  // delta=0，表示两线段重合或平行  
+//     {  
+//         return false;  
+//     }  
+//     double namenda = determinant(line2.start.x-line1.start.x, line2.start.x-line2.stop.x, line2.start.y-line1.start.y, line2.start.y-line2.stop.y) / delta;  
+//     if ( namenda>1 || namenda<0 )  
+//     {  
+//         return false;  
+//     }  
+//     double miu = determinant(line1.stop.x-line1.start.x, line2.start.x-line1.start.x, line1.stop.y-line1.start.y, line2.start.y-line1.start.y) / delta;  
+//     if ( miu>1 || miu<0 )  
+//     {  
+//         return false;  
+//     }  
+//     CrossP.x = line1.start.x + namenda*(line1.stop.x-line1.start.x);
+//     CrossP.y = line1.start.y + namenda*(line1.stop.y-line1.start.y);
+//     return true;  
+// }  
 
 bool getCross(LineXY line1, LineXY line2 ,StwayXY &CrossP)
 {
