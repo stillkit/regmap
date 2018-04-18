@@ -98,9 +98,10 @@ int             _cameraShots;
 int             _missionCommandCount;
 double          _surveyDistance;
 int             _gridEntryLocation = EntryLocationTopLeft;
+double          _coveredArea;
 
 vector<vector<StwayGPS> >   GenRegWaypoint(std::vector<struct wayPointGPS> gridPlygon, double gridSpacing, bool hoverAndCaptureEnabled, double hoverAndCaptureDelaySeconds, double gridAngle, 
-                    bool gridTriggerCamera, double gridTriggerCameraDist, double _turnaroundDist, uint8_t gridMode, uint8_t gridRefly);
+                    bool gridTriggerCamera, double gridTriggerCameraDist, double _turnaroundDist, uint8_t gridMode, bool gridRefly);
 void convertGeoToNed(StwayGPS coord, StwayGPS origin, double* x, double* y);
 void convertNedToGeo(double x, double y, StwayGPS origin, StwayGPS *coord);
 void generateGrid(void);
