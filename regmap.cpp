@@ -248,8 +248,8 @@ void generateGrid(void)
     else if(_gridMode == 6 || _gridMode == 7 || _gridMode == 8){
         // if(!zoomPolygonGrid(polygonPoints, transectSegments, false /* refly */))
         //     return ;
-        if(_gridMode == 6)
-            reverse(polygonPoints.begin(),polygonPoints.end());
+        // if(_gridMode == 6)
+        //     reverse(polygonPoints.begin(),polygonPoints.end());
         cameraShots += zoomPolygonGrid(polygonPoints, transectSegments, false /* refly */);
         // return ;
     }
@@ -724,25 +724,28 @@ double pointToSegDist(wayPointXy s, wayPointXy x1, wayPointXy x2){
     //     printf(" pointToSegDist min33 %f %f %f %f %f %f %f %f %f \n",cross,res,x1.x,x1.y,x2.x,x2.y,r,px,py);
     // #endif
 
-    // if((int)x1.x == (int)x2.x && (int)x2.x == (int)s.x)
-    //     res = DBL_MAX;
-    // else if((int)x1.y == (int)x2.y && (int)x2.y == (int)s.y)
-    //     res = DBL_MAX;
-    // else if((int)x1.x == (int)x2.x)
-    //     res = fabs(x1.x - s.x);
-    // else if((int)x1.y == (int)x2.y)
-    //     res = fabs(x1.y - s.y);
-    // else{
-    //     k = (x2.y-x1.y)/(x2.x-x1.x);
-    //     res = fabs(k*s.x+s.y+k*x1.x-x1.y)/sqrt(1+k*k);
-    //     #ifdef DEBUG
-    //         printf(" pointToSegDist min22 %f \n",k);
-    //     #endif
-    // }
+    if((int)x1.x == (int)x2.x && (int)x2.x == (int)s.x)
+        res = DBL_MAX;
+    else if((int)x1.y == (int)x2.y && (int)x2.y == (int)s.y)
+        res = DBL_MAX;
+    else if((int)x1.x == (int)x2.x)
+        res = fabs(x1.x - s.x);
+    else if((int)x1.y == (int)x2.y)
+        res = fabs(x1.y - s.y);
+    else{
+        // k = (x2.y-x1.y)/(x2.x-x1.x);
+        // res = fabs(k*s.x+s.y+k*x1.x-x1.y)/sqrt(1+k*k);
+        StwayXY A = unitizedVector(x1,s);
+        StwayXY B = unitizedVector(x1,x2);
+        res = fabs(xlJi(A,B) * lineLenth(x1,s));
+        #ifdef DEBUG
+            printf(" pointToSegDist min22 %f \n",k);
+        #endif
+    }
 
-    StwayXY A = unitizedVector(x1,s);
-    StwayXY B = unitizedVector(x1,x2);
-    res = fabs(xlJi(A,B) * lineLenth(x1,s));
+    // StwayXY A = unitizedVector(x1,s);
+    // StwayXY B = unitizedVector(x1,x2);
+    // res = fabs(xlJi(A,B) * lineLenth(x1,s));
 
     #ifdef DEBUG
         printf(" pointToSegDist min %f \n",res);
@@ -941,6 +944,7 @@ int getTriggercameraShots(const vector<vector<StwayXY> >& intersectLines,  vecto
 
 int zoomPolygonGrid(const vector<StwayXY>& polygonPoints,  vector<vector<StwayXY> >& transectSegments, bool refly){
     vector<StwayXY> polygonPoints_tmp = polygonPoints;
+    vector<StwayXY> polygonPoints_tmp_tmp = polygonPoints;
     vector<StwayXY> polygonPoints_res_tra;
     // vector<StwayXY> polygonPoints_tmp_2 = polygonPoints;
     // vector<StwayXY> polygonPoints_tmp_3 = polygonPoints;
@@ -953,6 +957,7 @@ int zoomPolygonGrid(const vector<StwayXY>& polygonPoints,  vector<vector<StwayXY
     double          gridSpacing = _gridSpacing;
     double          maxGridSpacing;
     double          maxGridSpacing_tmp = getMinPoiintToSegDist(polygonPoints);
+    bool            interFlag = false;
 
     #ifdef DEBUG
     for (int i=0; i<polygonPoints.size(); i++) {
@@ -992,8 +997,19 @@ int zoomPolygonGrid(const vector<StwayXY>& polygonPoints,  vector<vector<StwayXY
             printf("zoomPolygon polygonPoints_tmp  %f %f\n", polygonPoints_tmp[i].x,polygonPoints_tmp[i].y);
         }
         #endif
-        if(isPolygonCross(polygonPoints_tmp,polygonPoints_res))
-            break;
+        // if(isPolygonCross(polygonPoints_tmp,polygonPoints_res)){
+        //     if((int)polygonPoints_res.size() > 2){
+        //         polygonPoints_tmp_tmp.clear();
+        //         polygonPoints_tmp_tmp = polygonPoints_tmp;
+        //         continue;
+        //     }else{
+        //         break;
+        //     }
+        // }else{
+        //     if(polygonArea(polygonPoints_tmp) <= polygonArea(polygonPoints_res)){
+        //         break;
+        //     }
+        // }
 
         // if(isPolygonCross(polygonPoints_tmp_2,polygonPoints_res))
         //     break;
@@ -1037,8 +1053,40 @@ int zoomPolygonGrid(const vector<StwayXY>& polygonPoints,  vector<vector<StwayXY
 
         // polygonPoints_tmp_2 = polygonPoints_tmp;
 
-        polygonPoints_tmp = polygonPoints_res;
+        if(!interFlag){
+            if(isPolygonCross(polygonPoints_tmp,polygonPoints_res)){
+                if((int)polygonPoints_res.size() > 2){
+                    interFlag = true;
+                    polygonPoints_tmp_tmp.clear();
+                    polygonPoints_tmp_tmp = polygonPoints_tmp;
+                    polygonPoints_tmp.clear();
+                    polygonPoints_tmp = polygonPoints_res;
+                    continue;
+                }else{
+                    break;
+                }
+            }
+        }else{
+            if(isPolygonCross(polygonPoints_tmp_tmp,polygonPoints_res)){
+                if((int)polygonPoints_res.size() > 2){
+                    polygonPoints_tmp.clear();
+                    polygonPoints_tmp = polygonPoints_res;
+                    continue;
+                }else{
+                    break;
+                }
+            }else{
+                interFlag = false;
+                polygonPoints_tmp.clear();
+                polygonPoints_tmp = polygonPoints_tmp_tmp;
+            }
+        }
 
+        if(polygonArea(polygonPoints_tmp) <= polygonArea(polygonPoints_res)){
+            break;
+        }
+        
+        polygonPoints_tmp = polygonPoints_res;
         transectSegmentsTmp.push_back(polygonPoints_res);
         #ifdef DEBUG
         printf("zoomPolygonGrid polygonPoints_tmp size  %d\n", (int)polygonPoints_tmp.size());
@@ -2074,4 +2122,21 @@ void convertNedToGeo(double x, double y, StwayGPS origin, StwayGPS *coord) {
     coord->lon = lon_rad * M_RAD_TO_DEG;
 }
 
-
+double polygonArea(std::vector<StwayXY> polygonPoints){
+    double area = 0;
+    int nums = (int)polygonPoints.size();
+    if(nums < 3)
+        return 0;
+    for(int i = 0; i < nums - 1; i ++){
+        area += (0.5)*xlJi(polygonPoints[i],polygonPoints[i+1]);
+        #ifdef DEBUG
+        printf(" polygonArea %.1f %.1f\n",area,xlJi(minusWayPointXy(polygonPoints[i],polygonPoints[0]),minusWayPointXy(polygonPoints[i+1],polygonPoints[0])));
+        // printf(" intersectPoint %f %f \n ",intersectPoint.x,intersectPoint.y);
+        #endif
+    }
+     #ifdef DEBUG
+        printf(" polygonArea %.1f\n",area);
+        // printf(" intersectPoint %f %f \n ",intersectPoint.x,intersectPoint.y);
+    #endif
+    return fabs(area);
+}

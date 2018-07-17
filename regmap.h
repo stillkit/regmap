@@ -215,4 +215,14 @@ StwayXY unitizedVector(StwayXY p1, StwayXY p2);
 bool getConcavePoint(std::vector<StwayXY> polygonPoints,vector<int> &polygonConcavePointsSer);
 // bool isOkRelativePosition(StwayXY p1, StwayXY p2,StwayXY p3,int compIdP1P2,int compIdP2P3);
 
+/*
+ *@author: kit
+ *@date: 20180716
+ *@description: Get the area of a polygon
+ *input parameter:
+ *               Vertex of a polygon
+ *return: 
+ *               the area of a polygon
+ */
+double polygonArea(std::vector<StwayXY> polygonPoints);
 #endif 
