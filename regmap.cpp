@@ -724,24 +724,28 @@ double pointToSegDist(wayPointXy s, wayPointXy x1, wayPointXy x2){
     //     printf(" pointToSegDist min33 %f %f %f %f %f %f %f %f %f \n",cross,res,x1.x,x1.y,x2.x,x2.y,r,px,py);
     // #endif
 
-    if((int)x1.x == (int)x2.x && (int)x2.x == (int)s.x)
-        res = DBL_MAX;
-    else if((int)x1.y == (int)x2.y && (int)x2.y == (int)s.y)
-        res = DBL_MAX;
-    else if((int)x1.x == (int)x2.x)
-        res = fabs(x1.x - s.x);
-    else if((int)x1.y == (int)x2.y)
-        res = fabs(x1.y - s.y);
-    else{
-        k = (x2.y-x1.y)/(x2.x-x1.x);
-        res = fabs(k*s.x+s.y+k*x1.x-x1.y)/sqrt(1+k*k);
-        #ifdef DEBUG
-            printf(" pointToSegDist min22 %f \n",k);
-        #endif
-    }
+    // if((int)x1.x == (int)x2.x && (int)x2.x == (int)s.x)
+    //     res = DBL_MAX;
+    // else if((int)x1.y == (int)x2.y && (int)x2.y == (int)s.y)
+    //     res = DBL_MAX;
+    // else if((int)x1.x == (int)x2.x)
+    //     res = fabs(x1.x - s.x);
+    // else if((int)x1.y == (int)x2.y)
+    //     res = fabs(x1.y - s.y);
+    // else{
+    //     k = (x2.y-x1.y)/(x2.x-x1.x);
+    //     res = fabs(k*s.x+s.y+k*x1.x-x1.y)/sqrt(1+k*k);
+    //     #ifdef DEBUG
+    //         printf(" pointToSegDist min22 %f \n",k);
+    //     #endif
+    // }
+
+    StwayXY A = unitizedVector(x1,s);
+    StwayXY B = unitizedVector(x1,x2);
+    res = fabs(xlJi(A,B) * lineLenth(x1,s));
 
     #ifdef DEBUG
-        printf(" pointToSegDist min33 %f \n",res);
+        printf(" pointToSegDist min %f \n",res);
     #endif
 
     return res;
@@ -1082,6 +1086,16 @@ std::vector<StwayXY> unitizedVector(std::vector<StwayXY> polygonPoints){
       nDpList.push_back(p2d);
     }
     return nDpList;
+}
+
+StwayXY unitizedVector(StwayXY p1, StwayXY p2){
+    StwayXY  p2d;
+    double r;
+    p2d=minusWayPointXy(p1,p2);
+    r=sqrt((p2.x - p1.x)*(p2.x - p1.x)+(p2.y - p1.y)*(p2.y - p1.y));
+    r=1/r;
+    p2d=multyWayPointXy(p2d,r);
+    return p2d;
 }
 
 bool getConcavePoint(std::vector<StwayXY> polygonPoints,vector<int> &polygonConcavePointsSer){

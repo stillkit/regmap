@@ -100,6 +100,24 @@ double          _surveyDistance;
 int             _gridEntryLocation = EntryLocationTopLeft;
 double          _coveredArea;
 
+/*
+ *@author: kit
+ *@date: 20180716
+ *@description: main function
+ *input parameter:
+ *  1,std::vector<struct wayPointGPS> gridPlygon:             Mapping polygon vertices
+ *  2,double gridSpacing:                                     Mapping spacing
+ *  3,bool hoverAndCaptureEnabled(TODO):                      Whether to stop taking photos at the waypoint
+ *  4,double hoverAndCaptureDelaySeconds(TODO):               Delay time at the camera point
+ *  5,double gridAngle:                                       Angle of the survey line
+ *  6,bool gridTriggerCamera(TODO):                           Trigger photo point sign
+ *  7,double gridTriggerCameraDist(TODO):                     Distance between photo points
+ *  8,double _turnaroundDist:                                 The distance from the turning point to the boundary line
+ *  9,uint8_t gridMode:                                       Mapping mode,0:normal,1:Recommended scanning angle,2:Convert to convex polygon scan,6:Equal interval scanning,7:(TODO),8:Convert to graph polygons for equally spaced scans
+ *  10,bool gridRefly(TOD):                                   Whether to mark the second scan        
+ *return:
+ *  vector<vector<StwayGPS> > :Surveyed waypoint collection
+ */
 vector<vector<StwayGPS> >   GenRegWaypoint(std::vector<struct wayPointGPS> gridPlygon, double gridSpacing, bool hoverAndCaptureEnabled, double hoverAndCaptureDelaySeconds, double gridAngle, 
                     bool gridTriggerCamera, double gridTriggerCameraDist, double _turnaroundDist, uint8_t gridMode, bool gridRefly);
 void convertGeoToNed(StwayGPS coord, StwayGPS origin, double* x, double* y);
@@ -156,6 +174,15 @@ int zoomPolygonGrid(const vector<StwayXY>& polygonPoints,  vector<vector<StwayXY
 // std::vector<StwayXY> zoomPolygon(std::vector<StwayXY> polygonPoints, double gridSpacing);
 std::vector<StwayXY> zoomPolygon(std::vector<StwayXY> polygonPoints, double gridSpacing, vector<int> relativePosition, vector<int> &relativePositionInner);
 double pointToSegDist(wayPointXy s, wayPointXy x1, wayPointXy x2);
+/*
+ *@author: kit
+ *@date: 20180716
+ *@description: Get minimum point-to-edge distance
+ *input parameter:
+ *               Vertex of a polygon
+ *return: 
+ *               Minimum point-to-edge distance
+ */
 double getMinPoiintToSegDist(const vector<StwayXY>& polygonPoints);
 bool isCanGenerateGrid(std::vector<StwayXY> polygonPoints);
 // bool isCloseToPointAndSeg(const vector<StwayXY>& polygonPoints, int i);
@@ -165,7 +192,26 @@ bool isOkRelativePosition(StwayXY p1, StwayXY p2,int compId);
 int getRelativePosition(StwayXY p1, StwayXY p2);
 bool isPolygonCross(const vector<StwayXY>& polygonPointsStart, const vector<StwayXY>& polygonPointsEnd);
 int getTriggercameraShots(const vector<StwayXY>& intersectLines,  vector<vector<StwayXY> >& transectSegments);
+/*
+ *@author: kit
+ *@date: 20180716
+ *@description: Get all the unit vector of a polygon
+ *input parameter:
+ *               Vertex of a polygon
+ *return: 
+ *               a line vector
+ */
 std::vector<StwayXY> unitizedVector(std::vector<StwayXY> polygonPoints);
+/*
+ *@author: kit
+ *@date: 20180716
+ *@description: Get the unit vector of two points
+ *input parameter:
+ *               tow points
+ *return: 
+ *               a line
+ */
+StwayXY unitizedVector(StwayXY p1, StwayXY p2);
 bool getConcavePoint(std::vector<StwayXY> polygonPoints,vector<int> &polygonConcavePointsSer);
 // bool isOkRelativePosition(StwayXY p1, StwayXY p2,StwayXY p3,int compIdP1P2,int compIdP2P3);
 
