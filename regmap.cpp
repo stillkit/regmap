@@ -1763,166 +1763,167 @@ void intersectLinesWithPolygon(const vector<LineXY>& lineList, const vector<Stwa
 //     return true;  
 // }  
 
-bool getCross(LineXY line1, LineXY line2 ,StwayXY &CrossP)
-{
-    // StwayXY CrossP;
-    //y = a * x + b;
+// bool getCross(LineXY line1, LineXY line2 ,StwayXY &CrossP)
+// {
+//     // StwayXY CrossP;
+//     //y = a * x + b;
+//     CrossP.x == DBL_MAX;
+//     CrossP.y == DBL_MAX;
 
+//     double a1,b1,a2,b2;
+//     if((int)line1.start.x == (int)line1.stop.x){
+//         a1 = 60;
+//         b1 = line1.start.x;
+//     }else if((int)line1.start.y == (int)line1.stop.y){
+//         a1 = 0;
+//         b1 = line1.start.y;
+//     }else{
+//         a1 = (line1.start.y - line1.stop.y) / (line1.start.x - line1.stop.x);
+//         if(abs(int(a1)) > 59){
+//             a1 = 60;
+//             b1 = line1.start.x;
+//         }else{
+//             b1 = line1.start.y - a1 * (line1.start.x);
+//         }
+//     }
 
-    double a1,b1,a2,b2;
-    if((int)line1.start.x == (int)line1.stop.x){
-        a1 = 60;
-        b1 = line1.start.x;
-    }else if((int)line1.start.y == (int)line1.stop.y){
-        a1 = 0;
-        b1 = line1.start.y;
-    }else{
-        a1 = (line1.start.y - line1.stop.y) / (line1.start.x - line1.stop.x);
-        if(abs(int(a1)) > 59){
-            a1 = 60;
-            b1 = line1.start.x;
-        }else{
-            b1 = line1.start.y - a1 * (line1.start.x);
-        }
-    }
-
-    if((int)line2.start.x == (int)line2.stop.x){
-        a2 = 60;
-        b2 = line2.start.x;
-    }else if((int)line2.start.y == (int)line2.stop.y){
-        a2 = 0;
-        b2 = line2.start.y;
-    }else{
-        a2 = (line2.start.y - line2.stop.y) / (line2.start.x - line2.stop.x);
-        if(abs(int(a2)) > 59){
-            a2 = 60;
-            b2 = line2.start.x;
-        }else{
-            b2 = line2.start.y - a2 * (line2.start.x);
-        }
-    }
-    #ifdef DEBUG
-        printf("slop %f %f\n",a1,a2);
-        // if(CrossP.x != DBL_MAX)
-        // printf(" getCross444 %d %f %d\n ",abs(a1),fabs(a1),abs(a2));
-    #endif
-    if(fabs(a2 - a1) < 1e-6){
-        CrossP.x = DBL_MAX;
-        CrossP.y = DBL_MAX;
-        #ifdef DEBUG
-            printf("22222222222222222 %d %d\n",int(a1),int(a2));
-            // if(CrossP.x != DBL_MAX)
-            // printf(" getCross444 %d %f %d\n ",abs(a1),fabs(a1),abs(a2));
-        #endif
-        if(abs(int(a1)) == 60 && abs(int(a2)) == 60 ){
-            CrossP.x = DBL_MAX;
-            CrossP.y = DBL_MAX;
-            #ifdef DEBUG
-                printf("11111111111111111 %d %d\n",int(a1),int(a2));
-                // if(CrossP.x != DBL_MAX)
-                // printf(" 11111111111111111 %d %d\n ",abs(a1-DBL_MAX),abs(a1-DBL_MAX));
-            #endif
-        }
+//     if((int)line2.start.x == (int)line2.stop.x){
+//         a2 = 60;
+//         b2 = line2.start.x;
+//     }else if((int)line2.start.y == (int)line2.stop.y){
+//         a2 = 0;
+//         b2 = line2.start.y;
+//     }else{
+//         a2 = (line2.start.y - line2.stop.y) / (line2.start.x - line2.stop.x);
+//         if(abs(int(a2)) > 59){
+//             a2 = 60;
+//             b2 = line2.start.x;
+//         }else{
+//             b2 = line2.start.y - a2 * (line2.start.x);
+//         }
+//     }
+//     #ifdef DEBUG
+//         printf("slop %f %f\n",a1,a2);
+//         // if(CrossP.x != DBL_MAX)
+//         // printf(" getCross444 %d %f %d\n ",abs(a1),fabs(a1),abs(a2));
+//     #endif
+//     if(fabs(a2 - a1) < 1e-6){
+//         CrossP.x = DBL_MAX;
+//         CrossP.y = DBL_MAX;
+//         #ifdef DEBUG
+//             printf("22222222222222222 %d %d\n",int(a1),int(a2));
+//             // if(CrossP.x != DBL_MAX)
+//             // printf(" getCross444 %d %f %d\n ",abs(a1),fabs(a1),abs(a2));
+//         #endif
+//         if(abs(int(a1)) == 60 && abs(int(a2)) == 60 ){
+//             CrossP.x = DBL_MAX;
+//             CrossP.y = DBL_MAX;
+//             #ifdef DEBUG
+//                 printf("11111111111111111 %d %d\n",int(a1),int(a2));
+//                 // if(CrossP.x != DBL_MAX)
+//                 // printf(" 11111111111111111 %d %d\n ",abs(a1-DBL_MAX),abs(a1-DBL_MAX));
+//             #endif
+//         }
         
-    }else{
-        if((abs(int(a2)) == 60 && abs(a1) < 0.0001)){
-            CrossP.x = b2;
-            CrossP.y = b1;
-            #ifdef DEBUG
-                printf(" 333333333333333 %d %f\n",abs(int(a2)),abs(a1));
-            #endif
-        }else if((abs(int(a1)) == 60 && abs(a2) < 0.001)){
-            CrossP.x = b1;
-            CrossP.y = b2;
-            #ifdef DEBUG
-                printf(" 44444444444444444\n");
-            #endif
-        }else if(abs(int(a1)) == 60){
-            CrossP.x = b1;
-            CrossP.y = a1 * CrossP.x + b1;
-            #ifdef DEBUG
-                printf(" 555555555555555555\n");
-            #endif
-        }else if(abs(int(a2)) == 60){
-            CrossP.x = b2;
-            CrossP.y = a1 * CrossP.x + b1;
-            #ifdef DEBUG
-                printf(" 6666666666666666\n");
-            #endif
-        }else{
-            CrossP.x = (b1 - b2) / (a2 - a1);
-            CrossP.y = a1 * CrossP.x + b1;
-            #ifdef DEBUG
-                printf(" 7777777777777777777\n");
-            #endif
-        }
+//     }else{
+//         if((abs(int(a2)) == 60 && abs(a1) < 0.0001)){
+//             CrossP.x = b2;
+//             CrossP.y = b1;
+//             #ifdef DEBUG
+//                 printf(" 333333333333333 %d %f\n",abs(int(a2)),abs(a1));
+//             #endif
+//         }else if((abs(int(a1)) == 60 && abs(a2) < 0.001)){
+//             CrossP.x = b1;
+//             CrossP.y = b2;
+//             #ifdef DEBUG
+//                 printf(" 44444444444444444\n");
+//             #endif
+//         }else if(abs(int(a1)) == 60){
+//             CrossP.x = b1;
+//             CrossP.y = a1 * CrossP.x + b1;
+//             #ifdef DEBUG
+//                 printf(" 555555555555555555\n");
+//             #endif
+//         }else if(abs(int(a2)) == 60){
+//             CrossP.x = b2;
+//             CrossP.y = a1 * CrossP.x + b1;
+//             #ifdef DEBUG
+//                 printf(" 6666666666666666\n");
+//             #endif
+//         }else{
+//             CrossP.x = (b1 - b2) / (a2 - a1);
+//             CrossP.y = a1 * CrossP.x + b1;
+//             #ifdef DEBUG
+//                 printf(" 7777777777777777777\n");
+//             #endif
+//         }
         
 
-        //if(line1.start.x == line1.stop.x || line1.start.y == line1.stop.y || line2.start.x == line2.stop.x || line2.start.y == line2.stop.y)
+//         //if(line1.start.x == line1.stop.x || line1.start.y == line1.stop.y || line2.start.x == line2.stop.x || line2.start.y == line2.stop.y)
 
-        // if((line1.start.x <= line1.stop.x && CrossP.x >= line1.start.x && CrossP.x <= line1.stop.x)){
-        //     CrossP.x = -0.0;
-        //     CrossP.y = 0.0;
-        // }else
-        #ifdef DEBUG
-            printf(" getCross %f %f %f %f \n",a1,a2,b1,b2);
-            // if(CrossP.x != DBL_MAX)
-            printf(" getCross333 %f %f \n ",CrossP.x,CrossP.y);
-        #endif
+//         // if((line1.start.x <= line1.stop.x && CrossP.x >= line1.start.x && CrossP.x <= line1.stop.x)){
+//         //     CrossP.x = -0.0;
+//         //     CrossP.y = 0.0;
+//         // }else
+//         #ifdef DEBUG
+//             printf(" getCross %f %f %f %f \n",a1,a2,b1,b2);
+//             // if(CrossP.x != DBL_MAX)
+//             printf(" getCross333 %f %f \n ",CrossP.x,CrossP.y);
+//         #endif
 
-        if(((int)line1.start.x == (int)line1.stop.x && (int)CrossP.x != (int)line1.start.x) || ((int)line1.start.y == (int)line1.stop.y && (int)CrossP.y != (int)line1.start.y)){
-            #ifdef DEBUG
-                printf(" getCross222 %f %f\n",CrossP.x ,CrossP.y);
-                // printf(" intersectPoint %f %f \n ",intersectPoint.x,intersectPoint.y);
-            #endif
-            CrossP.x = DBL_MAX;
-            CrossP.y = DBL_MAX;
-        }else if(((int)line2.start.x == (int)line2.stop.x && (int)CrossP.x != (int)line2.start.x) || ((int)line2.start.y == (int)line2.stop.y && (int)CrossP.y != (int)line2.start.y)){
-            #ifdef DEBUG
-                printf(" getCross444 %f %f\n",CrossP.x ,CrossP.y);
-                // printf(" intersectPoint %f %f \n ",intersectPoint.x,intersectPoint.y);
-            #endif
-            CrossP.x = DBL_MAX;
-            CrossP.y = DBL_MAX;
-         }else if((int)((int)CrossP.x - (int)line2.start.x)*((int)CrossP.x - (int)line2.stop.x) > 0 || (int)((int)CrossP.y - (int)line2.start.y)*((int)CrossP.y - (int)line2.stop.y) > 0){
-            //else if((int)line1.start.x > (int)line1.stop.x){
-                #ifdef DEBUG
-                    printf(" getCross111 %f %f\n",CrossP.x ,CrossP.y);
-                    // printf(" intersectPoint %f %f \n ",intersectPoint.x,intersectPoint.y);
-                #endif
-                CrossP.x = DBL_MAX;
-                CrossP.y = DBL_MAX;
-            // }
-        }else if((int)((int)CrossP.x - (int)line1.start.x)*((int)CrossP.x - (int)line1.stop.x) > 0 || (int)((int)CrossP.y - (int)line1.start.y)*((int)CrossP.y - (int)line1.stop.y) > 0){
-            //else if((int)line1.start.x > (int)line1.stop.x){
-                #ifdef DEBUG
-                    printf(" getCross555 %f %f\n",CrossP.x ,CrossP.y);
-                    // printf(" intersectPoint %f %f \n ",intersectPoint.x,intersectPoint.y);
-                #endif
-                CrossP.x = DBL_MAX;
-                CrossP.y = DBL_MAX;
-            // }
-        }else if(abs(CrossP.x) > 40000 || abs(CrossP.y) > 40000){
-            #ifdef DEBUG
-                printf(" getCross666 %f %f\n",CrossP.x ,CrossP.y);
-                // printf(" intersectPoint %f %f \n ",intersectPoint.x,intersectPoint.y);
-            #endif
-            CrossP.x = DBL_MAX;
-            CrossP.y = DBL_MAX;
-        }
+//         if(((int)line1.start.x == (int)line1.stop.x && (int)CrossP.x != (int)line1.start.x) || ((int)line1.start.y == (int)line1.stop.y && (int)CrossP.y != (int)line1.start.y)){
+//             #ifdef DEBUG
+//                 printf(" getCross222 %f %f\n",CrossP.x ,CrossP.y);
+//                 // printf(" intersectPoint %f %f \n ",intersectPoint.x,intersectPoint.y);
+//             #endif
+//             CrossP.x = DBL_MAX;
+//             CrossP.y = DBL_MAX;
+//         }else if(((int)line2.start.x == (int)line2.stop.x && (int)CrossP.x != (int)line2.start.x) || ((int)line2.start.y == (int)line2.stop.y && (int)CrossP.y != (int)line2.start.y)){
+//             #ifdef DEBUG
+//                 printf(" getCross444 %f %f\n",CrossP.x ,CrossP.y);
+//                 // printf(" intersectPoint %f %f \n ",intersectPoint.x,intersectPoint.y);
+//             #endif
+//             CrossP.x = DBL_MAX;
+//             CrossP.y = DBL_MAX;
+//          }else if((int)((int)CrossP.x - (int)line2.start.x)*((int)CrossP.x - (int)line2.stop.x) > 0 || (int)((int)CrossP.y - (int)line2.start.y)*((int)CrossP.y - (int)line2.stop.y) > 0){
+//             //else if((int)line1.start.x > (int)line1.stop.x){
+//                 #ifdef DEBUG
+//                     printf(" getCross111 %f %f\n",CrossP.x ,CrossP.y);
+//                     // printf(" intersectPoint %f %f \n ",intersectPoint.x,intersectPoint.y);
+//                 #endif
+//                 CrossP.x = DBL_MAX;
+//                 CrossP.y = DBL_MAX;
+//             // }
+//         }else if((int)((int)CrossP.x - (int)line1.start.x)*((int)CrossP.x - (int)line1.stop.x) > 0 || (int)((int)CrossP.y - (int)line1.start.y)*((int)CrossP.y - (int)line1.stop.y) > 0){
+//             //else if((int)line1.start.x > (int)line1.stop.x){
+//                 #ifdef DEBUG
+//                     printf(" getCross555 %f %f\n",CrossP.x ,CrossP.y);
+//                     // printf(" intersectPoint %f %f \n ",intersectPoint.x,intersectPoint.y);
+//                 #endif
+//                 CrossP.x = DBL_MAX;
+//                 CrossP.y = DBL_MAX;
+//             // }
+//         }else if(abs(CrossP.x) > 40000 || abs(CrossP.y) > 40000){
+//             #ifdef DEBUG
+//                 printf(" getCross666 %f %f\n",CrossP.x ,CrossP.y);
+//                 // printf(" intersectPoint %f %f \n ",intersectPoint.x,intersectPoint.y);
+//             #endif
+//             CrossP.x = DBL_MAX;
+//             CrossP.y = DBL_MAX;
+//         }
 
-    }
+//     }
     
-    #ifdef DEBUG
-        // printf(" getCross %f %f %f %f \n",a1,a2,b1,b2);
-        // if(CrossP.x != DBL_MAX)
-        // printf(" intersectPoint %f %f \n ",CrossP.x,CrossP.y);
-    #endif
-    if(CrossP.x == DBL_MAX && CrossP.y == DBL_MAX)
-        return false;
-    else
-        return true;
-}
+//     #ifdef DEBUG
+//         // printf(" getCross %f %f %f %f \n",a1,a2,b1,b2);
+//         // if(CrossP.x != DBL_MAX)
+//         // printf(" intersectPoint %f %f \n ",CrossP.x,CrossP.y);
+//     #endif
+//     if(CrossP.x == DBL_MAX && CrossP.y == DBL_MAX)
+//         return false;
+//     else
+//         return true;
+// }
 
 LineXY getLine(double x1, double y1, double x2, double y2, const StwayXY& origin, double angle){
     LineXY lineList_temp;
@@ -2139,4 +2140,77 @@ double polygonArea(std::vector<StwayXY> polygonPoints){
         // printf(" intersectPoint %f %f \n ",intersectPoint.x,intersectPoint.y);
     #endif
     return fabs(area);
+}
+
+int dblcmp(double a,double b)
+{
+    if (fabs(a-b)<=1E-6) return 0;
+    if (a>b) return 1;
+    else return -1;
+}
+//***************点积判点是否在线段上***************
+double dot(double x1,double y1,double x2,double y2) //点积
+{
+    return x1*x2+y1*y2;
+}
+
+int point_on_line(StwayXY a,StwayXY b,StwayXY c) //求a点是不是在线段bc上，>0不在，=0与端点重合，<0在。
+{
+    return dblcmp(dot(b.x-a.x,b.y-a.y,c.x-a.x,c.y-a.y),0);
+}
+//**************************************************
+double cross(double x1,double y1,double x2,double y2)
+{
+    return x1*y2-x2*y1;
+}
+double ab_cross_ac(StwayXY a,StwayXY b,StwayXY c) //ab与ac的叉积
+{
+    return cross(b.x-a.x,b.y-a.y,c.x-a.x,c.y-a.y);
+}
+bool getCross(LineXY line1, LineXY line2 ,StwayXY &CrossP) //求ab是否与cd相交，交点为p。1规范相交，0交点是一线段的端点，-1不相交。
+{
+    StwayXY a,b,c,d;
+    a = line1.start;
+    b = line1.stop;
+    c = line2.start;
+    d = line2.stop;
+
+    double s1,s2,s3,s4;
+    int d1,d2,d3,d4;
+    d1=dblcmp(s1=ab_cross_ac(a,b,c),0);
+    d2=dblcmp(s2=ab_cross_ac(a,b,d),0);
+    d3=dblcmp(s3=ab_cross_ac(c,d,a),0);
+    d4=dblcmp(s4=ab_cross_ac(c,d,b),0);
+
+//如果规范相交则求交点
+    if ((d1^d2)==-2 && (d3^d4)==-2)
+    {
+        CrossP.x=(c.x*s2-d.x*s1)/(s2-s1);
+        CrossP.y=(c.y*s2-d.y*s1)/(s2-s1);
+        return true;
+    }
+
+//如果不规范相交
+    if (d1==0 && point_on_line(c,a,b)<=0)
+    {
+        CrossP=c;
+        return true;
+    }
+    if (d2==0 && point_on_line(d,a,b)<=0)
+    {
+        CrossP=d;
+        return true;
+    }
+    if (d3==0 && point_on_line(a,c,d)<=0)
+    {
+        CrossP=a;
+        return true;
+    }
+    if (d4==0 && point_on_line(b,c,d)<=0)
+    {
+        CrossP=b;
+        return true;
+    }
+//如果不相交
+    return false;
 }
