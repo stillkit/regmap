@@ -2175,6 +2175,9 @@ bool getCross(LineXY line1, LineXY line2 ,StwayXY &CrossP) //求ab是否与cd相
     c = line2.start;
     d = line2.stop;
 
+    CrossP.x == DBL_MAX;
+    CrossP.y == DBL_MAX;
+
     double s1,s2,s3,s4;
     int d1,d2,d3,d4;
     d1=dblcmp(s1=ab_cross_ac(a,b,c),0);
