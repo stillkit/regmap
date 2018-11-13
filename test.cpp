@@ -6,12 +6,13 @@ typedef struct wayPointGPS{
   double lat;
   double lon;
 }StawayGPS;
-extern std::vector<std::vector<struct wayPointGPS> > GenRegWaypoint(std::vector<struct wayPointGPS> gridPlygon, double gridSpacing, bool hoverAndCaptureEnabled, double hoverAndCaptureDelaySeconds, double gridAngle, 
+extern std::vector<std::vector<struct wayPointGPS> > GenRegWaypoint(std::vector<struct wayPointGPS> gridPlygon, struct wayPointGPS vehicle_gps, double gridSpacing, bool hoverAndCaptureEnabled, double hoverAndCaptureDelaySeconds, double gridAngle, 
                     bool gridTriggerCamera, double gridTriggerCameraDist, double _turnaroundDist, uint8_t gridMode, bool gridRefly);
 int main()   
 {  
-    StawayGPS ways[8];
-    std::vector<StawayGPS> way(ways,ways+8);
+    StawayGPS ways[4];
+    StawayGPS vehicle_gps_way;
+    std::vector<StawayGPS> way(ways,ways+4);
     // int i;
     // for(i = 0; i < 4; i ++){
 
@@ -45,35 +46,38 @@ int main()
       // way[7].lat = 40.0361124;
       // way[7].lon = 116.3450277;
 
-      way[0].lat = 40.0351124;
-      way[0].lon = 116.3420277;
+      // vehicle_gps_way.lat = 40.0381424;
+      // vehicle_gps_way.lon = 116.3300277;
 
-      way[1].lat = 40.0351124;
-      way[1].lon = 116.3470277;
+      // way[0].lat = 40.0351124;
+      // way[0].lon = 116.3420277;
 
-      way[2].lat = 40.0351124;
-      way[2].lon = 116.3480277;
+      // way[1].lat = 40.0351124;
+      // way[1].lon = 116.3470277;
 
-      // way[2].lat = 40.0371124;
-      // way[2].lon = 116.3450277;
+      // way[2].lat = 40.0351124;
+      // way[2].lon = 116.3480277;
 
-      way[3].lat = 40.0391124;
-      way[3].lon = 116.3470277;
+      // // way[2].lat = 40.0371124;
+      // // way[2].lon = 116.3450277;
 
-      // way[4].lat = 40.0381124;
-      // way[4].lon = 116.3460277;
+      // way[3].lat = 40.0391124;
+      // way[3].lon = 116.3470277;
 
-      way[4].lat = 40.0391124;
-      way[4].lon = 116.3420277;
+      // // way[4].lat = 40.0381124;
+      // // way[4].lon = 116.3460277;
 
-      way[5].lat = 40.0371124;
-      way[5].lon = 116.3320277;
+      // way[4].lat = 40.0391124;
+      // way[4].lon = 116.3420277;
 
-      way[6].lat = 40.0371124;
-      way[6].lon = 116.3370277;
+      // way[5].lat = 40.0371124;
+      // way[5].lon = 116.3320277;
 
-      way[7].lat = 40.0361124;
-      way[7].lon = 116.3450277;
+      // way[6].lat = 40.0371124;
+      // way[6].lon = 116.3370277;
+
+      // way[7].lat = 40.0361124;
+      // way[7].lon = 116.3450277;
 
     // }
 
@@ -199,17 +203,20 @@ int main()
     // way[3].lon =    116.2712380;
 
 
-    // way[0].lat =      40.208329327761291;
-    // way[0].lon =      116.27133986955815;
+    way[0].lat =      40.208329327761291;
+    way[0].lon =      116.27133986955815;
 
-    // way[1].lat =      40.208574344407197;
-    // way[1].lon =       116.30063758199735;
+    way[1].lat =      40.208574344407197;
+    way[1].lon =       116.30063758199735;
 
-    // way[2].lat =     40.178827367231541;
-    // way[2].lon =    116.3006667764041;
+    way[2].lat =     40.178827367231541;
+    way[2].lon =    116.3006667764041;
 
-    // way[3].lat =     40.178581802295184;
-    // way[3].lon =          116.27136906819931;   
+    way[3].lat =     40.178581802295184;
+    way[3].lon =          116.27136906819931;   
+
+    vehicle_gps_way.lat = 40.105389327761291;
+    vehicle_gps_way.lon = 116.27133986955815;
 
     // way[0].lat =       40.207217557036863;
     // way[0].lon =      116.29515469818109;
@@ -224,11 +231,22 @@ int main()
     // way[3].lon =          116.27136906819931;   
 
     int i;
-    for(i = 0; i < 8; i ++){
+    for(i = 0; i < 4; i ++){
         printf("%0.8f %0.8f \n",way[i].lat,way[i].lon);
     }
+
+    FILE *fp = NULL;
+    // int i;
+
+    fp = fopen("data.txt", "w");
+
+    // for(i = 0; i < 3; i ++){
+    //     fprintf(fp,"%0.7f\t%0.7f\n",way[i].lat,way[i].lon); 
+    // }
+    fclose(fp);
+
     
-    std::vector<std::vector<StawayGPS> > result = GenRegWaypoint(way,10,true,1,110,true,10,0,1,false);
+    std::vector<std::vector<StawayGPS> > result = GenRegWaypoint(way,vehicle_gps_way,5,true,0,0,true,5,0,0,false);
     // for(i = 0; i < result.size(); i ++)
     //     for(int j = 0; j < result[i].size(); j ++)
     //         printf("%0.7f %0.7f\n",result[i][j].lat,result[i][j].lon);

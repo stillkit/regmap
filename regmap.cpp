@@ -1,6 +1,6 @@
 #include "regmap.h"
 
-vector<vector<StwayGPS> >  GenRegWaypoint(std::vector<struct wayPointGPS> gridPlygon, double gridSpacing, bool hoverAndCaptureEnabled, double hoverAndCaptureDelaySeconds, double gridAngle, 
+vector<vector<StwayGPS> >  GenRegWaypoint(std::vector<struct wayPointGPS> gridPlygon, struct wayPointGPS vehicle_gps, double gridSpacing, bool hoverAndCaptureEnabled, double hoverAndCaptureDelaySeconds, double gridAngle, 
                                 bool gridTriggerCamera, double gridTriggerCameraDist, double turnaroundDist, uint8_t gridMode, bool gridRefly) 
 {  
     _gridPlygon = gridPlygon;
@@ -13,36 +13,50 @@ vector<vector<StwayGPS> >  GenRegWaypoint(std::vector<struct wayPointGPS> gridPl
     _turnaroundDist = turnaroundDist;
     _gridMode = gridMode;
     _gridRefly = gridRefly;
+    _vehicle_gps = vehicle_gps;
 
 
 
     generateGrid();
 
-    FILE *fp,*fp1;
-    int i;
-    if( (fp = fopen("dataman.txt","w+")) == NULL){
-        if((fp = fopen("dataman.txt","w")) == NULL ){
-            return _transectSegments; 
-        } 
-    }
-
-    if( (fp1 = fopen("dataman1.txt","w+")) == NULL){
-        if((fp1 = fopen("dataman1.txt","w")) == NULL ){
-            return _transectSegments; 
-        } 
-    }
-    // for(i = 0; i < _gridPlygon.size(); i ++){
-    //    fprintf(fp,"%lf %lf\n",gridPlygon[i].lat,gridPlygon[i].lon); 
+    // FILE *fp,*fp1;
+    // int i;
+    // if( (fp = fopen("dataman.txt","w+")) == NULL){
+    //     if((fp = fopen("dataman.txt","w")) == NULL ){
+    //         return _transectSegments; 
+    //     } 
     // }
-    // fprintf(fp,"_okDegree %f %f\n",_okDegree.x,_okDegree.y);
+
+    // if( (fp1 = fopen("dataman1.txt","w+")) == NULL){
+    //     if((fp1 = fopen("dataman1.txt","w")) == NULL ){
+    //         return _transectSegments; 
+    //     } 
+    // }
+    // // for(i = 0; i < _gridPlygon.size(); i ++){
+    // //    fprintf(fp,"%lf %lf\n",gridPlygon[i].lat,gridPlygon[i].lon); 
+    // // }
+    // // fprintf(fp,"_okDegree %f %f\n",_okDegree.x,_okDegree.y);
+    // for(i = 0; i < _transectSegments.size(); i ++){
+    //     for(int j = 0; j < _transectSegments[i].size(); j ++){
+    //         fprintf(fp,"%0.7f\n",_transectSegments[i][j].lat); 
+    //         fprintf(fp1,"%0.7f\n",_transectSegments[i][j].lon); 
+    //     }
+    // }
+    // fclose(fp);
+    // fclose(fp1);
+
+    FILE *fp = NULL;
+	int i;
+
+	fp = fopen("data.txt", "a+");
+
+    fprintf(fp,"%0.7f\t%0.7f\n",_vehicle_gps.lat,_vehicle_gps.lon);
     for(i = 0; i < _transectSegments.size(); i ++){
         for(int j = 0; j < _transectSegments[i].size(); j ++){
-            fprintf(fp,"%0.7f\n",_transectSegments[i][j].lat); 
-            fprintf(fp1,"%0.7f\n",_transectSegments[i][j].lon); 
+            fprintf(fp,"%0.7f\t%0.7f\n",_transectSegments[i][j].lat,_transectSegments[i][j].lon); 
         }
     }
-    fclose(fp);
-    fclose(fp1);
+	fclose(fp);
 
     return _transectSegments;
 }  
@@ -144,6 +158,9 @@ void generateGrid(void)
         printf("vertex:x:y %f %f\n", polygonPoints_tmp.back().x,polygonPoints_tmp.back().y);
         #endif
     }
+
+    convertGeoToNed(_vehicle_gps, tangentOrigin, &_vehicle_gps_ned.y, &_vehicle_gps_ned.x);
+
     if(!isCanGenerateGrid(polygonPoints_tmp)){
         #ifdef DEBUG
         printf("isCanGenerateGrid failed\n");
@@ -153,7 +170,17 @@ void generateGrid(void)
 
     // std::vector<StwayXY> polygonPoints = ConvexHull(polygonPoints_tmp);//convexPolygon(polygonPoints_tmp);ConvexHull
     if(_gridMode == 0 || _gridMode == 6){
+
         polygonPoints =polygonPoints_tmp;
+
+        #ifdef DEBUG
+                for (int i=0; i<polygonPoints.size(); i++) {
+                    printf("_polygonConcavePointsSer %f %f\n", polygonPoints[i].x,polygonPoints[i].y);
+                }
+            #endif
+
+        if(_gridMode == 6)
+            clockwiseSortPoints(polygonPoints);
     
         #ifdef DEBUG
                 for (int i=0; i<polygonPoints.size(); i++) {
@@ -250,7 +277,25 @@ void generateGrid(void)
         //     return ;
         // if(_gridMode == 6)
         //     reverse(polygonPoints.begin(),polygonPoints.end());
-        cameraShots += zoomPolygonGrid(polygonPoints, transectSegments, false /* refly */);
+
+        //从最短的路经开始等距扫描
+        double min_lenth = lineLenth(polygonPoints[0],_vehicle_gps_ned);
+        int s_min_flag = 0;
+        for(int i = 1; i < polygonPoints.size(); i ++){
+            if(min_lenth > lineLenth(polygonPoints[i],_vehicle_gps_ned)){
+                s_min_flag = i;
+                min_lenth = lineLenth(polygonPoints[i],_vehicle_gps_ned);
+            }
+        }
+
+        std::vector<StwayXY>  polygonPoints_min_tmp;
+        int i = s_min_flag;
+        do{
+            polygonPoints_min_tmp.push_back(polygonPoints[i]);
+            i = (i+1)%polygonPoints.size();
+        }while(i != s_min_flag);
+
+        cameraShots += zoomPolygonGrid(polygonPoints_min_tmp, transectSegments, false /* refly */);
         // return ;
     }
     convertTransectToGeo(transectSegments, tangentOrigin, _transectSegments);
@@ -495,12 +540,8 @@ int gridGenerator(const vector<StwayXY>& polygonPoints,  vector<vector<StwayXY> 
 #endif
     // Now intersect the lines with the polygon
     vector<LineXY> intersectLines;
-#if 1
+
     intersectLinesWithPolygon(lineList, polygon, intersectLines);
-#else
-    // This is handy for debugging grid problems, not for release
-    intersectLines = lineList;
-#endif
 
     // Less than two transects intersected with the polygon:
     //      Create a single transect which goes through the center of the polygon
@@ -523,6 +564,7 @@ int gridGenerator(const vector<StwayXY>& polygonPoints,  vector<vector<StwayXY> 
 //     // can be in varied directions depending on the order of the intesecting sides.
     vector<LineXY> resultLines;
     adjustLineDirection(intersectLines, resultLines);
+    // resultLines = intersectLines;
 #ifdef DEBUG
 printf(" Calc camera shots %d\n",(int)intersectLines.size());
 #endif
@@ -538,23 +580,57 @@ printf(" Calc camera shots %d\n",(int)intersectLines.size());
 #ifdef DEBUG
 printf(" Turn into a path \n");
 #endif
+
+    // 选择离当前机体位置最近的点进行航点规划
+    double min_lineLength = lineLenth(resultLines[0].start,_vehicle_gps_ned);
+    // bool min_lineLength_flag = false;//false：从0号线开始，true：从最大序号线开始
+    bool min_start_flag = false;//false：从start开始，true：从stop开始
+    int start_iter = 0;
+    if(lineLenth(resultLines[0].stop,_vehicle_gps_ned) < min_lineLength){
+        min_lineLength = lineLenth(resultLines[0].stop,_vehicle_gps_ned);
+        min_start_flag = true;
+    }else if(lineLenth(resultLines[resultLines.size()-1].start,_vehicle_gps_ned) < min_lineLength){
+        min_lineLength = lineLenth(resultLines[resultLines.size()-1].start,_vehicle_gps_ned);
+        // min_lineLength_flag = true;
+        start_iter = resultLines.size()-1;
+    }else if(lineLenth(resultLines[resultLines.size()-1].stop,_vehicle_gps_ned) < min_lineLength){
+        min_lineLength = lineLenth(resultLines[resultLines.size()-1].stop,_vehicle_gps_ned);
+        // min_lineLength_flag = true;
+        start_iter = resultLines.size()-1;
+        min_start_flag = true;
+    }
+#ifdef DEBUG
+printf(" min_lineLength_flag %d %d\n",min_start_flag,start_iter);
+#endif
+
     // Turn into a path
-    for (int i=0; i<resultLines.size(); i++) {
+    for (int i=0,j=start_iter; i<resultLines.size(); i++,start_iter==0?j++:j--) {
         LineXY           transectLine;
         vector<StwayXY>  transectPoints;
-        const LineXY&    line = resultLines[i];
+        const LineXY&    line = resultLines[j];
 #ifdef DEBUG
-printf(" Polygon entry point 1\n");
+printf(" Polygon entry point 1 %d\n",i);
 #endif
         float turnaroundPosition = _turnaroundDist / lineLenth(line);
 
         if (i & 1) {
+            if(!min_start_flag){
+                transectLine.start = line.stop;
+                transectLine.stop = line.start;
+            }else{
+                transectLine.start = line.start;
+                transectLine.stop = line.stop;
+            }
             // transectLine = QLineF(line.p2(), line.p1());
-            transectLine.start = line.stop;
-            transectLine.stop = line.start;
+            
         } else {
-            transectLine.start = line.start;
-            transectLine.stop = line.stop;
+            if(!min_start_flag){
+                transectLine.start = line.start;
+                transectLine.stop = line.stop;
+            }else{
+                transectLine.start = line.stop;
+                transectLine.stop = line.start;
+            }
             // transectLine = QLineF(line.p1(), line.p2());
         }
 
@@ -1313,7 +1389,7 @@ int getRelativePosition(StwayXY p1, StwayXY p2){
     double tmp = getSlope(p1, p2);
     if(tmp >=0 && tmp < 90)
         return 1;
-    else if(tmp >= 90 && tmp < 180)
+    else if(tmp >= 90 && tmp <= 180)
         return 2;
     else if(tmp >= -90 && tmp < 0)
         return 3;
@@ -1322,10 +1398,24 @@ int getRelativePosition(StwayXY p1, StwayXY p2){
 }
 
 double getSlope(StwayXY p1, StwayXY p2){
-    if(p1.x == p2.x)
-        return 0;
-    else if(p1.y == p2.y)
+    double y = p2.y - p1.y;
+    double x = p2.x - p1.x;
+    // if(p1.x == p2.x){
+    //     return 0;
+    // }else if(p1.y == p2.y)
+    //     return 90;
+    // else
+    //     return atan2((p2.y - p1.y),(p2.x - p1.x))*M_RAD_TO_DEG;
+
+    if(y == 0){
+        if(x >= 0)
+            return 0;
+        else
+            return 180;
+    }else if(y > 0 && x == 0)
         return 90;
+    else if(y < 0 && x == 0)
+        return -90;
     else
         return atan2((p2.y - p1.y),(p2.x - p1.x))*M_RAD_TO_DEG;
 }
@@ -1596,17 +1686,28 @@ std::vector<StwayXY> ConvexHull(vector<StwayXY>  s)
 void adjustLineDirection(const vector<LineXY>& lineList, vector<LineXY>& resultLines)
 {
     double firstAngle = 0;
-    for (int i=0; i<lineList.size(); i++) {
+    LineXY first_line;
+    if(lineList.size() > 0)
+        first_line = lineList[0];
+    for (int i=1; i<lineList.size(); i++) {
         LineXY line = lineList[i];
         LineXY adjustedLine;
 
-        if (i == 0) {
-            firstAngle = getSlope(line.start,line.stop);
-        }
+        // if (i == 0) {
+        //     firstAngle = getSlope(line.start,line.stop);
+        // }
 
-        if (abs(getSlope(line.start,line.stop) - firstAngle) > 50) {
+        #ifdef DEBUG
+            printf(" adjustLineDirection %f %f %f %f %f %f %f\n",line.start.x,line.start.y,line.stop.x,line.stop.y,firstAngle,getSlope(line.start,line.stop),getSlope(line.start,line.stop) * firstAngle);
+        #endif
+
+        if ((first_line.stop.x - first_line.start.x) * (line.stop.x - line.start.x) +(first_line.stop.y - first_line.start.y)*(line.stop.y - line.start.y) < 0){
             adjustedLine.start = line.stop;
             adjustedLine.stop = line.start;
+            // firstAngle = -getSlope(line.start,line.stop);
+            #ifdef DEBUG
+                printf(" adjustLineDirection +++ %f\n",fabs(getSlope(line.start,line.stop) - firstAngle));
+            #endif
         } else {
             adjustedLine.start = line.start;
             adjustedLine.stop = line.stop;
@@ -2129,7 +2230,7 @@ double polygonArea(std::vector<StwayXY> polygonPoints){
     if(nums < 3)
         return 0;
     for(int i = 0; i < nums - 1; i ++){
-        area += (0.5)*xlJi(polygonPoints[i],polygonPoints[i+1]);
+        area += (0.5)*xlJi(minusWayPointXy(polygonPoints[i],polygonPoints[0]),minusWayPointXy(polygonPoints[i+1],polygonPoints[0]));
         #ifdef DEBUG
         printf(" polygonArea %.1f %.1f\n",area,xlJi(minusWayPointXy(polygonPoints[i],polygonPoints[0]),minusWayPointXy(polygonPoints[i+1],polygonPoints[0])));
         // printf(" intersectPoint %f %f \n ",intersectPoint.x,intersectPoint.y);
@@ -2216,4 +2317,50 @@ bool getCross(LineXY line1, LineXY line2 ,StwayXY &CrossP) //求ab是否与cd相
     }
 //如果不相交
     return false;
+}
+
+//若点a大于点b,即点a在点b顺时针方向,返回true,否则返回false
+bool pointCmp(const StwayXY &a,const StwayXY &b,const StwayXY &center)
+{
+    if (a.x >= 0 && b.x < 0)
+        return true;
+    if (a.x == 0 && b.x == 0)
+        return a.y > b.y;
+    //向量OA和向量OB的叉积
+    int det = (a.x - center.x) * (b.y - center.y) - (b.x - center.x) * (a.y - center.y);
+    if (det < 0)
+        return true;
+    if (det > 0)
+        return false;
+    //向量OA和向量OB共线，以距离判断大小
+    int d1 = (a.x - center.x) * (a.x - center.x) + (a.y - center.y) * (a.y - center.y);
+    int d2 = (b.x - center.x) * (b.x - center.y) + (b.y - center.y) * (b.y - center.y);
+    return d1 > d2;
+}
+void clockwiseSortPoints(std::vector<StwayXY> &vPoints)
+{
+    //计算重心
+    StwayXY center;
+    double x = 0,y = 0;
+    for (int i = 0;i < vPoints.size();i++)
+    {
+        x += vPoints[i].x;
+        y += vPoints[i].y;
+    }
+    center.x = x/vPoints.size();
+    center.y = y/vPoints.size();
+
+    //冒泡排序
+    for(int i = 0;i < vPoints.size() - 1;i++)
+    {
+        for (int j = 0;j < vPoints.size() - i - 1;j++)
+        {
+            if (pointCmp(vPoints[j],vPoints[j+1],center))
+            {
+                StwayXY tmp = vPoints[j];
+                vPoints[j] = vPoints[j + 1];
+                vPoints[j + 1] = tmp;
+            }
+        }
+    }
 }

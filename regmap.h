@@ -27,8 +27,8 @@ typedef unsigned char uint8_t;
 #define CONSTANTS_AIR_GAS_CONST				287.1f 			/* J/(kg * K)		*/
 #define CONSTANTS_ABSOLUTE_NULL_CELSIUS			-273.15f		/* °C			*/
 #define CONSTANTS_RADIUS_OF_EARTH			6371000			/* meters (m)		*/
-#define MIN_POINT_SEG_DIST         10
-#define MIN_POINT_POINT_DIST         10
+#define MIN_POINT_SEG_DIST         _gridSpacing
+#define MIN_POINT_POINT_DIST         _gridSpacing
 
 #define DEBUG
 
@@ -77,6 +77,8 @@ double							_gridTriggerCameraDist;
 double 							_turnaroundDist;
 uint8_t 						_gridMode;
 uint8_t 						_gridRefly;
+struct wayPointGPS  _vehicle_gps;
+struct wayPointXy  _vehicle_gps_ned;
 
 
 // int                             _sequenceNumber;
@@ -106,19 +108,20 @@ double          _coveredArea;
  *@description: main function
  *input parameter:
  *  1,std::vector<struct wayPointGPS> gridPlygon:             Mapping polygon vertices
- *  2,double gridSpacing:                                     Mapping spacing
- *  3,bool hoverAndCaptureEnabled(TODO):                      Whether to stop taking photos at the waypoint
- *  4,double hoverAndCaptureDelaySeconds(TODO):               Delay time at the camera point
- *  5,double gridAngle:                                       Angle of the survey line
- *  6,bool gridTriggerCamera(TODO):                           Trigger photo point sign
- *  7,double gridTriggerCameraDist(TODO):                     Distance between photo points
- *  8,double _turnaroundDist:                                 The distance from the turning point to the boundary line
- *  9,uint8_t gridMode:                                       Mapping mode,0:normal,1:Recommended scanning angle,2:Convert to convex polygon scan,6:Equal interval scanning,7:(TODO),8:Convert to graph polygons for equally spaced scans
- *  10,bool gridRefly(TOD):                                   Whether to mark the second scan        
+ *  2,struct wayPointGPS vehicle_gps                          Current body coordinates
+ *  3,double gridSpacing:                                     Mapping spacing
+ *  4,bool hoverAndCaptureEnabled(TODO):                      Whether to stop taking photos at the waypoint
+ *  5,double hoverAndCaptureDelaySeconds(TODO):               Delay time at the camera point
+ *  6,double gridAngle:                                       Angle of the survey line
+ *  7,bool gridTriggerCamera(TODO):                           Trigger photo point sign
+ *  8,double gridTriggerCameraDist(TODO):                     Distance between photo points
+ *  9,double _turnaroundDist:                                 The distance from the turning point to the boundary line
+ *  10,uint8_t gridMode:                                       Mapping mode,0:normal,1:Recommended scanning angle,2:Convert to convex polygon scan,6:Equal interval scanning,7:(TODO),8:Convert to graph polygons for equally spaced scans
+ *  11,bool gridRefly(TOD):                                   Whether to mark the second scan        
  *return:
  *  vector<vector<StwayGPS> > :Surveyed waypoint collection
  */
-vector<vector<StwayGPS> >   GenRegWaypoint(std::vector<struct wayPointGPS> gridPlygon, double gridSpacing, bool hoverAndCaptureEnabled, double hoverAndCaptureDelaySeconds, double gridAngle, 
+vector<vector<StwayGPS> >   GenRegWaypoint(std::vector<struct wayPointGPS> gridPlygon, struct wayPointGPS vehicle_gps, double gridSpacing, bool hoverAndCaptureEnabled, double hoverAndCaptureDelaySeconds, double gridAngle, 
                     bool gridTriggerCamera, double gridTriggerCameraDist, double _turnaroundDist, uint8_t gridMode, bool gridRefly);
 void convertGeoToNed(StwayGPS coord, StwayGPS origin, double* x, double* y);
 void convertNedToGeo(double x, double y, StwayGPS origin, StwayGPS *coord);
@@ -226,3 +229,9 @@ bool getConcavePoint(std::vector<StwayXY> polygonPoints,vector<int> &polygonConc
  */
 double polygonArea(std::vector<StwayXY> polygonPoints);
 #endif 
+
+//若点a大于点b,即点a在点b顺时针方向,返回true,否则返回false
+bool pointCmp(const StwayXY &a,const StwayXY &b,const StwayXY &center);
+
+//逆时针排序坐标点
+void clockwiseSortPoints(std::vector<StwayXY> &vPoints);
