@@ -566,7 +566,7 @@ int gridGenerator(const vector<StwayXY>& polygonPoints,  vector<vector<StwayXY> 
     adjustLineDirection(intersectLines, resultLines);
     // resultLines = intersectLines;
 #ifdef DEBUG
-printf(" Calc camera shots %d\n",(int)intersectLines.size());
+printf(" Calc camera shots %d %d\n",(int)intersectLines.size(),(int)resultLines.size());
 #endif
     // Calc camera shots here if there are no images in turnaround
     if (_gridTriggerCamera) {
@@ -589,16 +589,21 @@ printf(" Turn into a path \n");
     if(lineLenth(resultLines[0].stop,_vehicle_gps_ned) < min_lineLength){
         min_lineLength = lineLenth(resultLines[0].stop,_vehicle_gps_ned);
         min_start_flag = true;
-    }else if(lineLenth(resultLines[resultLines.size()-1].start,_vehicle_gps_ned) < min_lineLength){
+    }
+    if(lineLenth(resultLines[resultLines.size()-1].start,_vehicle_gps_ned) < min_lineLength){
         min_lineLength = lineLenth(resultLines[resultLines.size()-1].start,_vehicle_gps_ned);
         // min_lineLength_flag = true;
         start_iter = resultLines.size()-1;
-    }else if(lineLenth(resultLines[resultLines.size()-1].stop,_vehicle_gps_ned) < min_lineLength){
+    }
+    if(lineLenth(resultLines[resultLines.size()-1].stop,_vehicle_gps_ned) < min_lineLength){
         min_lineLength = lineLenth(resultLines[resultLines.size()-1].stop,_vehicle_gps_ned);
         // min_lineLength_flag = true;
         start_iter = resultLines.size()-1;
         min_start_flag = true;
     }
+#ifdef DEBUG
+printf(" min_lineLength_flag %lf %lf %lf %lf\n",(double)lineLenth(resultLines[0].start,_vehicle_gps_ned),(double)lineLenth(resultLines[0].stop,_vehicle_gps_ned),(double)lineLenth(resultLines[resultLines.size()-1].start,_vehicle_gps_ned),lineLenth(resultLines[resultLines.size()-1].stop,_vehicle_gps_ned));
+#endif
 #ifdef DEBUG
 printf(" min_lineLength_flag %d %d\n",min_start_flag,start_iter);
 #endif
@@ -1689,6 +1694,7 @@ void adjustLineDirection(const vector<LineXY>& lineList, vector<LineXY>& resultL
     LineXY first_line;
     if(lineList.size() > 0)
         first_line = lineList[0];
+    resultLines.push_back(first_line);
     for (int i=1; i<lineList.size(); i++) {
         LineXY line = lineList[i];
         LineXY adjustedLine;
@@ -1785,6 +1791,21 @@ void intersectLinesWithPolygon(const vector<LineXY>& lineList, const vector<Stwa
     #ifdef DEBUG
     printf(" intersectLinesWithPolygon  %d\n",(int)lineList.size());
     #endif
+
+    for (int j=0; j<polygon.size()-1; j++) {
+            StwayXY intersectPoint;
+            // StwayXY polygonLine_temp_1;
+            // StwayXY polygonLine_temp_2;
+            // polygonLine_temp_1 = polygon[j];
+            // polygonLine_temp_2 = polygon[j+1];
+
+            LineXY polygonLine;
+            polygonLine.start = polygon[j];
+            polygonLine.stop = polygon[j+1];
+            #ifdef DEBUG
+                printf(" polygonLine %f %f %f %f \n",polygonLine.start.x,polygonLine.start.y,polygonLine.stop.x,polygonLine.stop.y);
+            #endif
+    }
     for (int i=0; i<lineList.size(); i++) {
         int foundCount = 0;
         LineXY intersectLine;
@@ -1803,20 +1824,20 @@ void intersectLinesWithPolygon(const vector<LineXY>& lineList, const vector<Stwa
             polygonLine.stop = polygon[j+1];
 
             isCross = getCross(line, polygonLine,intersectPoint);
-            #ifdef DEBUG
-                printf(" polygonLine %f %f %f %f \n",polygonLine.start.x,polygonLine.start.y,polygonLine.stop.x,polygonLine.stop.y);
-                printf(" line %f %f %f %f \n",line.start.x,line.start.y,line.stop.x,line.stop.y);
-                if(intersectPoint.x != DBL_MAX)
-                    printf(" intersectPoint %f %f \n ",intersectPoint.x,intersectPoint.y);
-                // printf(" intersectPoint %f %f \n ",intersectPoint.x,intersectPoint.y);
-            #endif
+            // #ifdef DEBUG
+            //     printf(" polygonLine %f %f %f %f \n",polygonLine.start.x,polygonLine.start.y,polygonLine.stop.x,polygonLine.stop.y);
+            //     printf(" line %f %f %f %f \n",line.start.x,line.start.y,line.stop.x,line.stop.y);
+            //     if(intersectPoint.x != DBL_MAX)
+            //         printf(" intersectPoint %f %f \n ",intersectPoint.x,intersectPoint.y);
+            //     // printf(" intersectPoint %f %f \n ",intersectPoint.x,intersectPoint.y);
+            // #endif
             
             if(isCross){
-                // #ifdef DEBUG
-                //     printf(" polygonLine %f %f %f %f \n",polygonLine.start.x,polygonLine.start.y,polygonLine.stop.x,polygonLine.stop.y);
-                //     printf(" line %f %f %f %f \n",line.start.x,line.start.y,line.stop.x,line.stop.y);
-                //     printf(" intersectPoint %f %f \n ",intersectPoint.x,intersectPoint.y);
-                // #endif
+                #ifdef DEBUG
+                    printf(" polygonLine %f %f %f %f \n",polygonLine.start.x,polygonLine.start.y,polygonLine.stop.x,polygonLine.stop.y);
+                    printf(" line %f %f %f %f \n",line.start.x,line.start.y,line.stop.x,line.stop.y);
+                    printf(" intersectPoint %f %f \n ",intersectPoint.x,intersectPoint.y);
+                #endif
                 if (foundCount == 0) {
                     foundCount++;
                     intersectLine.start = intersectPoint;

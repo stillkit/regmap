@@ -203,20 +203,20 @@ int main()
     // way[3].lon =    116.2712380;
 
 
-    way[0].lat =      40.208329327761291;
-    way[0].lon =      116.27133986955815;
+    way[2].lat =      40.208329327761291;
+    way[2].lon =      116.27133986955815;
 
-    way[1].lat =      40.208574344407197;
-    way[1].lon =       116.30063758199735;
+    way[3].lat =      40.208574344407197;
+    way[3].lon =       116.30063758199735;
 
-    way[2].lat =     40.178827367231541;
-    way[2].lon =    116.3006667764041;
+    way[0].lat =     40.178827367231541;
+    way[0].lon =    116.3006667764041;
 
-    way[3].lat =     40.178581802295184;
-    way[3].lon =          116.27136906819931;   
+    way[1].lat =     40.178581802295184;
+    way[1].lon =          116.27136906819931;   
 
-    vehicle_gps_way.lat = 40.105389327761291;
-    vehicle_gps_way.lon = 116.27133986955815;
+    // vehicle_gps_way.lat = 40.105389327761291;
+    // vehicle_gps_way.lon = 116.27133986955815;
 
     // way[0].lat =       40.207217557036863;
     // way[0].lon =      116.29515469818109;
@@ -229,6 +229,21 @@ int main()
 
     // way[3].lat =     40.178581802295184;
     // way[3].lon =          116.27136906819931;   
+
+    //  way[0].lat =      40.20065971106255;
+    // way[0].lon =      116.25984115907214;
+
+    // way[1].lat =       40.200613388492144;
+    // way[1].lon =       116.26021915776826;
+
+    // way[2].lat =     40.20055824348883;
+    // way[2].lon =     116.25996448942684;
+
+    // way[3].lat =     40.20037093547819;
+    // way[3].lon =         116.25978221719397;   
+
+    vehicle_gps_way.lat = 40.18534344407197;
+    vehicle_gps_way.lon =  116.29063758199735;
 
     int i;
     for(i = 0; i < 4; i ++){
@@ -246,7 +261,7 @@ int main()
     fclose(fp);
 
     
-    std::vector<std::vector<StawayGPS> > result = GenRegWaypoint(way,vehicle_gps_way,5,true,0,0,true,5,0,0,false);
+    std::vector<std::vector<StawayGPS> > result = GenRegWaypoint(way,vehicle_gps_way,100,true,0,0,true,5,0,0,false);
     // for(i = 0; i < result.size(); i ++)
     //     for(int j = 0; j < result[i].size(); j ++)
     //         printf("%0.7f %0.7f\n",result[i][j].lat,result[i][j].lon);
